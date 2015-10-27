@@ -1,0 +1,76 @@
+\hypertarget{classinterestDraw}{}\section{interest\+Draw Class Reference}
+\label{classinterestDraw}\index{interest\+Draw@{interest\+Draw}}
+Inheritance diagram for interest\+Draw\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classinterestDraw}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+virtual void \hyperlink{classinterestDraw_a0e181779fcbc9303d2f6c77e5151eca8}{draw} (cv\+::\+Mat \&image, const ev\+::v\+Queue \&e\+Set, int v\+Time)
+\begin{DoxyCompactList}\small\item\em draw takes an image and overlays the new visualisation textures \end{DoxyCompactList}\item 
+virtual std\+::string \hyperlink{classinterestDraw_a8121cc47bf53a6571e6afcb1afe68d86}{get\+Draw\+Type} ()
+\begin{DoxyCompactList}\small\item\em get\+Tag returns the unique code for this drawing method. The arguments given on the command line must match this code exactly \end{DoxyCompactList}\item 
+virtual std\+::string {\bfseries get\+Event\+Type} ()\hypertarget{classinterestDraw_a9be4fecf2899af86ca32e0eaa137ae5e}{}\label{classinterestDraw_a9be4fecf2899af86ca32e0eaa137ae5e}
+
+\end{DoxyCompactItemize}
+\subsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+static const std\+::string {\bfseries drawtype} = \char`\"{}AE-\/I\+NT\char`\"{}\hypertarget{classinterestDraw_ac439839e21e0d791d83ae245194e5629}{}\label{classinterestDraw_ac439839e21e0d791d83ae245194e5629}
+
+\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+\subsection{Member Function Documentation}
+\index{interest\+Draw@{interest\+Draw}!draw@{draw}}
+\index{draw@{draw}!interest\+Draw@{interest\+Draw}}
+\subsubsection[{\texorpdfstring{draw(cv\+::\+Mat \&image, const ev\+::v\+Queue \&e\+Set, int v\+Time)}{draw(cv::Mat &image, const ev::vQueue &eSet, int vTime)}}]{\setlength{\rightskip}{0pt plus 5cm}void interest\+Draw\+::draw (
+\begin{DoxyParamCaption}
+\item[{cv\+::\+Mat \&}]{canvas, }
+\item[{const ev\+::v\+Queue \&}]{e\+Set, }
+\item[{int}]{v\+Time}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [virtual]}}\hypertarget{classinterestDraw_a0e181779fcbc9303d2f6c77e5151eca8}{}\label{classinterestDraw_a0e181779fcbc9303d2f6c77e5151eca8}
+
+
+draw takes an image and overlays the new visualisation textures 
+
+
+\begin{DoxyParams}{Parameters}
+{\em canvas} & is the image which may or may not yet exist \\
+\hline
+{\em e\+Set} & is the set of events which could possibly be drawn \\
+\hline
+\end{DoxyParams}
+
+
+Implements \hyperlink{classvDraw_a35cf7b42fe542fd51c1014de19fb114c}{v\+Draw}.
+
+\index{interest\+Draw@{interest\+Draw}!get\+Draw\+Type@{get\+Draw\+Type}}
+\index{get\+Draw\+Type@{get\+Draw\+Type}!interest\+Draw@{interest\+Draw}}
+\subsubsection[{\texorpdfstring{get\+Draw\+Type()}{getDrawType()}}]{\setlength{\rightskip}{0pt plus 5cm}std\+::string interest\+Draw\+::get\+Draw\+Type (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [virtual]}}\hypertarget{classinterestDraw_a8121cc47bf53a6571e6afcb1afe68d86}{}\label{classinterestDraw_a8121cc47bf53a6571e6afcb1afe68d86}
+
+
+get\+Tag returns the unique code for this drawing method. The arguments given on the command line must match this code exactly 
+
+\begin{DoxyReturn}{Returns}
+the tag code 
+\end{DoxyReturn}
+
+
+Implements \hyperlink{classvDraw_abb4aa2bb3bb8daca40bdb12cd55d3fd3}{v\+Draw}.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+/home/aglover/workspace/projects/event-\/driven/src/processing/v\+Framer/include/v\+Draw.\+h\item 
+/home/aglover/workspace/projects/event-\/driven/src/processing/v\+Framer/src/v\+Draw.\+cpp\end{DoxyCompactItemize}

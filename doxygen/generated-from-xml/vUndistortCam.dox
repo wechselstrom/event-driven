@@ -1,0 +1,43 @@
+
+  /**
+  *
+  * @ingroup processing 
+  * \defgroup vUndistortCam vUndistortCam
+  * Removes lens distortion from the event camera
+  * Version:1.0
+  * \author  Arren Glover arren.glover@iit.it
+  * \n
+  * \copyright Released under the terms of the GNU GPL v2.0
+  * \section intro_sec Description
+  *
+  
+      Maps events to a different pixel location depending on the supplied intrinsic parameter file.
+    
+  * \section parameters_sec Parameters     
+  
+  *- -- name : Specifies the stem name of ports created by the module.
+  *- -- height : Number of pixels on the y-axis of the sensor.
+  *- -- width : Number of pixels on the x-axis of the sensor.
+  * \section inputports_sec Input Ports
+  * 
+  *- /vUndistortCam/vBottle:i [vBottle]  [default carrier:tcp]: 
+                Input event stream to undistort
+            
+  *
+  
+  * \section outputports_sec Output Ports
+  * 
+  *- /vUndistortCam/vBottle:o [vBottle]  [default carrier:tcp]: 
+                Output undistorted event stream
+            
+  *
+  
+  *
+  * \section services_sec Services
+  * 
+  *
+  * 
+  *
+  *
+  **/
+

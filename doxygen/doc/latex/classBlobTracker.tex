@@ -1,0 +1,125 @@
+\hypertarget{classBlobTracker}{}\section{Blob\+Tracker Class Reference}
+\label{classBlobTracker}\index{Blob\+Tracker@{Blob\+Tracker}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+bool {\bfseries initialise\+Position} (double x, double y)\hypertarget{classBlobTracker_ac3dbde755642d5e9cf179123823a8eec}{}\label{classBlobTracker_ac3dbde755642d5e9cf179123823a8eec}
+
+\item 
+bool {\bfseries initialise\+Shape} (double sigX, double sig\+Y2, double sig\+XY, double alpha\+\_\+pos, double alpha\+\_\+shape, bool fix)\hypertarget{classBlobTracker_a29990e53b163a720f284978b97a6d723}{}\label{classBlobTracker_a29990e53b163a720f284978b97a6d723}
+
+\item 
+double {\bfseries dist2event} (int ev\+\_\+x, int ev\+\_\+y)\hypertarget{classBlobTracker_a873c6f0932845537163a5b80605ac599}{}\label{classBlobTracker_a873c6f0932845537163a5b80605ac599}
+
+\item 
+double {\bfseries compute\+\_\+p} (int ev\+\_\+x, int ev\+\_\+y)\hypertarget{classBlobTracker_abfe11c1db8b5c9634ec9f5ba86f379d9}{}\label{classBlobTracker_abfe11c1db8b5c9634ec9f5ba86f379d9}
+
+\item 
+bool {\bfseries add\+Activity} (int x, int y, unsigned long int ts, double Tact, double Tevent)\hypertarget{classBlobTracker_ab84953899ecee068e63a8f1a89fe7dd8}{}\label{classBlobTracker_ab84953899ecee068e63a8f1a89fe7dd8}
+
+\item 
+bool {\bfseries decay\+Activity} (int dt, double tau, double Tinact, double Tfree)\hypertarget{classBlobTracker_af410be534735ad33bafc259d70316a54}{}\label{classBlobTracker_af410be534735ad33bafc259d70316a54}
+
+\item 
+void {\bfseries cluster\+Spiked} ()\hypertarget{classBlobTracker_af7a07b561d9516ab480632667672e7ed}{}\label{classBlobTracker_af7a07b561d9516ab480632667672e7ed}
+
+\item 
+void {\bfseries is\+No\+Longer\+Free} ()\hypertarget{classBlobTracker_ad22b6a8aaf647e71b57fba25f9f419d1}{}\label{classBlobTracker_ad22b6a8aaf647e71b57fba25f9f419d1}
+
+\item 
+bool {\bfseries is\+\_\+active} ()\hypertarget{classBlobTracker_af0cd5a8da431251197c88560c919d89d}{}\label{classBlobTracker_af0cd5a8da431251197c88560c919d89d}
+
+\item 
+bool {\bfseries is\+\_\+on} ()\hypertarget{classBlobTracker_a8f18821eb105ce6e95d05e4cc4e3a3aa}{}\label{classBlobTracker_a8f18821eb105ce6e95d05e4cc4e3a3aa}
+
+\item 
+bool {\bfseries is\+Free} ()\hypertarget{classBlobTracker_a21f9c5029c220f71e7442a8b068431b7}{}\label{classBlobTracker_a21f9c5029c220f71e7442a8b068431b7}
+
+\item 
+double {\bfseries get\+\_\+sigx2} ()\hypertarget{classBlobTracker_ab42f73b98cb1885cdd162148ace8bf23}{}\label{classBlobTracker_ab42f73b98cb1885cdd162148ace8bf23}
+
+\item 
+double {\bfseries get\+\_\+sigy2} ()\hypertarget{classBlobTracker_a6cc4fcfc6ade9a856dc7ba502531adf5}{}\label{classBlobTracker_a6cc4fcfc6ade9a856dc7ba502531adf5}
+
+\item 
+double {\bfseries get\+\_\+sigxy} ()\hypertarget{classBlobTracker_aeb6aed3ccd9793682b005127fab2bffd}{}\label{classBlobTracker_aeb6aed3ccd9793682b005127fab2bffd}
+
+\item 
+int {\bfseries get\+\_\+x} ()\hypertarget{classBlobTracker_aa20dbabdbbfabb44301d18bc59881488}{}\label{classBlobTracker_aa20dbabdbbfabb44301d18bc59881488}
+
+\item 
+int {\bfseries get\+\_\+y} ()\hypertarget{classBlobTracker_a2d78cea632f8f9fa4b325c575b9b49d9}{}\label{classBlobTracker_a2d78cea632f8f9fa4b325c575b9b49d9}
+
+\item 
+double {\bfseries get\+\_\+vx} ()\hypertarget{classBlobTracker_a339a2cdbf0e3af39241abc7dac115f6c}{}\label{classBlobTracker_a339a2cdbf0e3af39241abc7dac115f6c}
+
+\item 
+double {\bfseries get\+\_\+vy} ()\hypertarget{classBlobTracker_a99050a07f515b524837a3977e9c53a9c}{}\label{classBlobTracker_a99050a07f515b524837a3977e9c53a9c}
+
+\item 
+double {\bfseries get\+\_\+act} ()\hypertarget{classBlobTracker_a8b59d7b66e32c3c55486f7ef7446fbde}{}\label{classBlobTracker_a8b59d7b66e32c3c55486f7ef7446fbde}
+
+\end{DoxyCompactItemize}
+\subsection*{Protected Types}
+\begin{DoxyCompactItemize}
+\item 
+enum {\bfseries State} \{ {\bfseries Active}, 
+{\bfseries Inactive}, 
+{\bfseries Free}
+ \}\hypertarget{classBlobTracker_a7e8d5dcd8736e3ae2a1c448a36e3516f}{}\label{classBlobTracker_a7e8d5dcd8736e3ae2a1c448a36e3516f}
+
+\end{DoxyCompactItemize}
+\subsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+State {\bfseries state\+\_\+}\hypertarget{classBlobTracker_ad96c96edcf8e9b2155aba3c39d128249}{}\label{classBlobTracker_ad96c96edcf8e9b2155aba3c39d128249}
+
+\item 
+double {\bfseries cen\+\_\+x\+\_\+}\hypertarget{classBlobTracker_a93b360b9499b9a77c7da2eb0b264d8af}{}\label{classBlobTracker_a93b360b9499b9a77c7da2eb0b264d8af}
+
+\item 
+double {\bfseries cen\+\_\+y\+\_\+}\hypertarget{classBlobTracker_ab5eaa89cfedfb25fc0881009cefdbea4}{}\label{classBlobTracker_ab5eaa89cfedfb25fc0881009cefdbea4}
+
+\item 
+double {\bfseries sig\+\_\+x2\+\_\+}\hypertarget{classBlobTracker_a90039cb4599ff8cf137d0b0a9b89801e}{}\label{classBlobTracker_a90039cb4599ff8cf137d0b0a9b89801e}
+
+\item 
+double {\bfseries sig\+\_\+y2\+\_\+}\hypertarget{classBlobTracker_a8fa7fa36db3faed93d94b30bd50449e1}{}\label{classBlobTracker_a8fa7fa36db3faed93d94b30bd50449e1}
+
+\item 
+double {\bfseries sig\+\_\+xy\+\_\+}\hypertarget{classBlobTracker_af7c64be12d9aeee877adc6027e57dc31}{}\label{classBlobTracker_af7c64be12d9aeee877adc6027e57dc31}
+
+\item 
+double {\bfseries v\+LastX}\hypertarget{classBlobTracker_a37789b44e5e478a237580a3e168bd496}{}\label{classBlobTracker_a37789b44e5e478a237580a3e168bd496}
+
+\item 
+double {\bfseries v\+LastY}\hypertarget{classBlobTracker_ae836b9dd8d830ba8f6ccb6ea2f80e313}{}\label{classBlobTracker_ae836b9dd8d830ba8f6ccb6ea2f80e313}
+
+\item 
+double {\bfseries vx\+\_\+}\hypertarget{classBlobTracker_a98a091e1f3a0e16a71ff6602079c9c23}{}\label{classBlobTracker_a98a091e1f3a0e16a71ff6602079c9c23}
+
+\item 
+double {\bfseries vy\+\_\+}\hypertarget{classBlobTracker_a5b41c1c66d14c8b794b314ba204a93bd}{}\label{classBlobTracker_a5b41c1c66d14c8b794b314ba204a93bd}
+
+\item 
+double {\bfseries alpha\+\_\+pos\+\_\+}\hypertarget{classBlobTracker_ae10a65c546bfa9ed53d341a46080f53f}{}\label{classBlobTracker_ae10a65c546bfa9ed53d341a46080f53f}
+
+\item 
+double {\bfseries alpha\+\_\+shape\+\_\+}\hypertarget{classBlobTracker_a5183d2c99bd9dbc6f7170050e5830dea}{}\label{classBlobTracker_a5183d2c99bd9dbc6f7170050e5830dea}
+
+\item 
+bool {\bfseries fixed\+\_\+shape\+\_\+}\hypertarget{classBlobTracker_a57841b67cf49324e2ff7b9698897e908}{}\label{classBlobTracker_a57841b67cf49324e2ff7b9698897e908}
+
+\item 
+double {\bfseries activity\+\_\+}\hypertarget{classBlobTracker_aaf83587414449f41fa7719f9939c48a8}{}\label{classBlobTracker_aaf83587414449f41fa7719f9939c48a8}
+
+\item 
+unsigned long int {\bfseries ts\+\_\+last\+\_\+update\+\_\+}\hypertarget{classBlobTracker_a4084fae015313204286ce98259856467}{}\label{classBlobTracker_a4084fae015313204286ce98259856467}
+
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+/home/aglover/workspace/projects/event-\/driven/src/processing/v\+Cluster/include/blob\+Tracker.\+h\item 
+/home/aglover/workspace/projects/event-\/driven/src/processing/v\+Cluster/src/blob\+Tracker.\+cpp\end{DoxyCompactItemize}

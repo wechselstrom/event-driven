@@ -1,0 +1,71 @@
+\hypertarget{classvParticle}{}\section{v\+Particle Class Reference}
+\label{classvParticle}\index{v\+Particle@{v\+Particle}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classvParticle}{v\+Particle} \& {\bfseries operator=} (const \hyperlink{classvParticle}{v\+Particle} \&rhs)\hypertarget{classvParticle_a7e2a56a487ab19d6b17ffd8fd26cf83e}{}\label{classvParticle_a7e2a56a487ab19d6b17ffd8fd26cf83e}
+
+\item 
+void {\bfseries initialise\+Parameters} (int id, double min\+Likelihood, double outlier\+Param, double inlier\+Param, double variance, int angbuckets)\hypertarget{classvParticle_aefc50d1edaeac94dd1fc58719cf8fb64}{}\label{classvParticle_aefc50d1edaeac94dd1fc58719cf8fb64}
+
+\item 
+void {\bfseries attach\+P\+CB} (\hyperlink{classpreComputedBins}{pre\+Computed\+Bins} $\ast$pcb)\hypertarget{classvParticle_a83f71814b1a873e5641e35d8e46439db}{}\label{classvParticle_a83f71814b1a873e5641e35d8e46439db}
+
+\item 
+void {\bfseries initialise\+State} (double x, double y, double r, double tw)\hypertarget{classvParticle_a6e4bf2f8057efb01ee6a24da7724a099}{}\label{classvParticle_a6e4bf2f8057efb01ee6a24da7724a099}
+
+\item 
+void {\bfseries randomise} (int x, int y, int r, int tw)\hypertarget{classvParticle_a4c7b748b2537bff55c893b4f6bc6ab39}{}\label{classvParticle_a4c7b748b2537bff55c893b4f6bc6ab39}
+
+\item 
+void {\bfseries reset\+Stamp} (unsigned long int value)\hypertarget{classvParticle_abefd506d8def5255654736e471db8a6d}{}\label{classvParticle_abefd506d8def5255654736e471db8a6d}
+
+\item 
+void {\bfseries reset\+Weight} (double value)\hypertarget{classvParticle_aaa4c200b9a67deb457e55d06672e16cf}{}\label{classvParticle_aaa4c200b9a67deb457e55d06672e16cf}
+
+\item 
+void {\bfseries reset\+Radius} (double value)\hypertarget{classvParticle_a20fca983783950a35bcc737ebd705d0b}{}\label{classvParticle_a20fca983783950a35bcc737ebd705d0b}
+
+\item 
+void {\bfseries predict} (unsigned long int stamp)\hypertarget{classvParticle_a4f577057ec03af89721ff0abf3daaf5a}{}\label{classvParticle_a4f577057ec03af89721ff0abf3daaf5a}
+
+\item 
+void {\bfseries init\+Likelihood} ()\hypertarget{classvParticle_aeb6f48a94882492e7959cab8cc670714}{}\label{classvParticle_aeb6f48a94882492e7959cab8cc670714}
+
+\item 
+int {\bfseries incremental\+Likelihood} (int vx, int vy, int dt)\hypertarget{classvParticle_ad99a216eb8cc0ac87385777919a21267}{}\label{classvParticle_ad99a216eb8cc0ac87385777919a21267}
+
+\item 
+void {\bfseries conclude\+Likelihood} ()\hypertarget{classvParticle_ae16c098e00f11d2858edef59fc323c53}{}\label{classvParticle_ae16c098e00f11d2858edef59fc323c53}
+
+\item 
+void {\bfseries update\+Weight\+Sync} (double normval)\hypertarget{classvParticle_a71ac3f26d797818df2c671cb63ef5a60}{}\label{classvParticle_a71ac3f26d797818df2c671cb63ef5a60}
+
+\item 
+int {\bfseries getid} ()\hypertarget{classvParticle_a121f7c012ccbb6153eda5bee38ba310b}{}\label{classvParticle_a121f7c012ccbb6153eda5bee38ba310b}
+
+\item 
+double {\bfseries getx} ()\hypertarget{classvParticle_a3d198bc0a1b1a475ab0b044bbff61488}{}\label{classvParticle_a3d198bc0a1b1a475ab0b044bbff61488}
+
+\item 
+double {\bfseries gety} ()\hypertarget{classvParticle_a40050ef035199b05e7cfd2601003d68a}{}\label{classvParticle_a40050ef035199b05e7cfd2601003d68a}
+
+\item 
+double {\bfseries getr} ()\hypertarget{classvParticle_ac78d2469a78798f791a5dab9f69b732e}{}\label{classvParticle_ac78d2469a78798f791a5dab9f69b732e}
+
+\item 
+double {\bfseries getw} ()\hypertarget{classvParticle_ac75939f4ac46ee086991fb629c583ada}{}\label{classvParticle_ac75939f4ac46ee086991fb629c583ada}
+
+\item 
+double {\bfseries getl} ()\hypertarget{classvParticle_a9b43157a0b2b278873c78806ccd75f6f}{}\label{classvParticle_a9b43157a0b2b278873c78806ccd75f6f}
+
+\item 
+double {\bfseries gettw} ()\hypertarget{classvParticle_a1760cb3cbd3014e6f5cf0a55e5d4dfff}{}\label{classvParticle_a1760cb3cbd3014e6f5cf0a55e5d4dfff}
+
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+/home/aglover/workspace/projects/event-\/driven/src/processing/v\+Particle\+Filter/include/v\+Particle.\+h\item 
+/home/aglover/workspace/projects/event-\/driven/src/processing/v\+Particle\+Filter/src/v\+Particle.\+cpp\end{DoxyCompactItemize}

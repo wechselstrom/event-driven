@@ -1,0 +1,175 @@
+\hypertarget{classvCircleThread}{}\section{v\+Circle\+Thread Class Reference}
+\label{classvCircleThread}\index{v\+Circle\+Thread@{v\+Circle\+Thread}}
+
+
+The \hyperlink{classvCircleThread}{v\+Circle\+Thread} class performs a circular Hough transform.  
+
+
+
+
+{\ttfamily \#include $<$v\+Circle\+Observer.\+h$>$}
+
+Inheritance diagram for v\+Circle\+Thread\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classvCircleThread}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classvCircleThread_adb0ce9432b9fe2a8d853c63b764d7859}{v\+Circle\+Thread} (int R, bool directed, bool parallel=false, int height=128, int width=128, double arclength=15)
+\begin{DoxyCompactList}\small\item\em \hyperlink{classvCircleThread}{v\+Circle\+Thread} constructor \end{DoxyCompactList}\item 
+double \hyperlink{classvCircleThread_a692a1066ee63c2716998fcb3a7aa513d}{get\+Score} ()
+\begin{DoxyCompactList}\small\item\em get\+Score get the maximum strength in Hough space \end{DoxyCompactList}\item 
+int \hyperlink{classvCircleThread_a0feac9f937bfeecc2dc0b015f9e8161c}{getX} ()
+\begin{DoxyCompactList}\small\item\em getX get the maximum strength location \end{DoxyCompactList}\item 
+int \hyperlink{classvCircleThread_a4f39898c53c3178b84b28c8cc33ec352}{getY} ()
+\begin{DoxyCompactList}\small\item\em getY get the maximum strength location \end{DoxyCompactList}\item 
+int \hyperlink{classvCircleThread_a024aa1ad0a7855fad146425c80feadb0}{getR} ()
+\begin{DoxyCompactList}\small\item\em getR return the radius of the circle to be detected \end{DoxyCompactList}\item 
+void \hyperlink{classvCircleThread_ad5f114e5609dd616c9eae9d1755d12c1}{process} (ev\+::v\+Queue \&proc\+Queue, std\+::vector$<$ int $>$ \&proc\+Type)
+\begin{DoxyCompactList}\small\item\em process update the Hough transform (threaded or non-\/threaded) \end{DoxyCompactList}\item 
+void \hyperlink{classvCircleThread_a0d32749f12d2d93ff0d9ccdf37422ccf}{waitfordone} ()\hypertarget{classvCircleThread_a0d32749f12d2d93ff0d9ccdf37422ccf}{}\label{classvCircleThread_a0d32749f12d2d93ff0d9ccdf37422ccf}
+
+\begin{DoxyCompactList}\small\item\em waitfordone wait for computation to finish if threaded \end{DoxyCompactList}\item 
+int {\bfseries find\+Scores} (std\+::vector$<$ double $>$ \&values, double threshold)\hypertarget{classvCircleThread_a89b389603f6f6a9395a0381271dee419}{}\label{classvCircleThread_a89b389603f6f6a9395a0381271dee419}
+
+\item 
+yarp\+::sig\+::\+Image\+Of$<$ yarp\+::sig\+::\+Pixel\+Bgr $>$ \hyperlink{classvCircleThread_ae19a982e66ba27619a40ecbf128af543}{make\+Debug\+Image} (double refval=-\/1)
+\begin{DoxyCompactList}\small\item\em make\+Debug\+Image create an image visualising the Hough space \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+The \hyperlink{classvCircleThread}{v\+Circle\+Thread} class performs a circular Hough transform. 
+
+The class gives the maximal location and strength of a circular shape of a single given radius. The class can use the directed transform and can be threaded for use on multi-\/core systems. 
+
+\subsection{Constructor \& Destructor Documentation}
+\index{v\+Circle\+Thread@{v\+Circle\+Thread}!v\+Circle\+Thread@{v\+Circle\+Thread}}
+\index{v\+Circle\+Thread@{v\+Circle\+Thread}!v\+Circle\+Thread@{v\+Circle\+Thread}}
+\subsubsection[{\texorpdfstring{v\+Circle\+Thread(int R, bool directed, bool parallel=false, int height=128, int width=128, double arclength=15)}{vCircleThread(int R, bool directed, bool parallel=false, int height=128, int width=128, double arclength=15)}}]{\setlength{\rightskip}{0pt plus 5cm}v\+Circle\+Thread\+::v\+Circle\+Thread (
+\begin{DoxyParamCaption}
+\item[{int}]{R, }
+\item[{bool}]{directed, }
+\item[{bool}]{parallel = {\ttfamily false}, }
+\item[{int}]{height = {\ttfamily 128}, }
+\item[{int}]{width = {\ttfamily 128}, }
+\item[{double}]{arclength = {\ttfamily 15}}
+\end{DoxyParamCaption}
+)}\hypertarget{classvCircleThread_adb0ce9432b9fe2a8d853c63b764d7859}{}\label{classvCircleThread_adb0ce9432b9fe2a8d853c63b764d7859}
+
+
+\hyperlink{classvCircleThread}{v\+Circle\+Thread} constructor 
+
+
+\begin{DoxyParams}{Parameters}
+{\em R} & circle radius \\
+\hline
+{\em directed} & use directed Hough transform \\
+\hline
+{\em parallel} & use a separate thread for computation \\
+\hline
+{\em height} & sensor height \\
+\hline
+{\em width} & sensor width \\
+\hline
+\end{DoxyParams}
+
+
+\subsection{Member Function Documentation}
+\index{v\+Circle\+Thread@{v\+Circle\+Thread}!getR@{getR}}
+\index{getR@{getR}!v\+Circle\+Thread@{v\+Circle\+Thread}}
+\subsubsection[{\texorpdfstring{get\+R()}{getR()}}]{\setlength{\rightskip}{0pt plus 5cm}int v\+Circle\+Thread\+::getR (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}\hypertarget{classvCircleThread_a024aa1ad0a7855fad146425c80feadb0}{}\label{classvCircleThread_a024aa1ad0a7855fad146425c80feadb0}
+
+
+getR return the radius of the circle to be detected 
+
+\begin{DoxyReturn}{Returns}
+the radius R 
+\end{DoxyReturn}
+\index{v\+Circle\+Thread@{v\+Circle\+Thread}!get\+Score@{get\+Score}}
+\index{get\+Score@{get\+Score}!v\+Circle\+Thread@{v\+Circle\+Thread}}
+\subsubsection[{\texorpdfstring{get\+Score()}{getScore()}}]{\setlength{\rightskip}{0pt plus 5cm}double v\+Circle\+Thread\+::get\+Score (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}\hypertarget{classvCircleThread_a692a1066ee63c2716998fcb3a7aa513d}{}\label{classvCircleThread_a692a1066ee63c2716998fcb3a7aa513d}
+
+
+get\+Score get the maximum strength in Hough space 
+
+\begin{DoxyReturn}{Returns}
+the maximum strength in Hough space 
+\end{DoxyReturn}
+\index{v\+Circle\+Thread@{v\+Circle\+Thread}!getX@{getX}}
+\index{getX@{getX}!v\+Circle\+Thread@{v\+Circle\+Thread}}
+\subsubsection[{\texorpdfstring{get\+X()}{getX()}}]{\setlength{\rightskip}{0pt plus 5cm}int v\+Circle\+Thread\+::getX (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}\hypertarget{classvCircleThread_a0feac9f937bfeecc2dc0b015f9e8161c}{}\label{classvCircleThread_a0feac9f937bfeecc2dc0b015f9e8161c}
+
+
+getX get the maximum strength location 
+
+\begin{DoxyReturn}{Returns}
+maximum strength location along x axis 
+\end{DoxyReturn}
+\index{v\+Circle\+Thread@{v\+Circle\+Thread}!getY@{getY}}
+\index{getY@{getY}!v\+Circle\+Thread@{v\+Circle\+Thread}}
+\subsubsection[{\texorpdfstring{get\+Y()}{getY()}}]{\setlength{\rightskip}{0pt plus 5cm}int v\+Circle\+Thread\+::getY (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [inline]}}\hypertarget{classvCircleThread_a4f39898c53c3178b84b28c8cc33ec352}{}\label{classvCircleThread_a4f39898c53c3178b84b28c8cc33ec352}
+
+
+getY get the maximum strength location 
+
+\begin{DoxyReturn}{Returns}
+maximum strength location along y axis 
+\end{DoxyReturn}
+\index{v\+Circle\+Thread@{v\+Circle\+Thread}!make\+Debug\+Image@{make\+Debug\+Image}}
+\index{make\+Debug\+Image@{make\+Debug\+Image}!v\+Circle\+Thread@{v\+Circle\+Thread}}
+\subsubsection[{\texorpdfstring{make\+Debug\+Image(double refval=-\/1)}{makeDebugImage(double refval=-1)}}]{\setlength{\rightskip}{0pt plus 5cm}yarp\+::sig\+::\+Image\+Of$<$ yarp\+::sig\+::\+Pixel\+Bgr $>$ v\+Circle\+Thread\+::make\+Debug\+Image (
+\begin{DoxyParamCaption}
+\item[{double}]{refval = {\ttfamily -\/1}}
+\end{DoxyParamCaption}
+)}\hypertarget{classvCircleThread_ae19a982e66ba27619a40ecbf128af543}{}\label{classvCircleThread_ae19a982e66ba27619a40ecbf128af543}
+
+
+make\+Debug\+Image create an image visualising the Hough space 
+
+\begin{DoxyReturn}{Returns}
+a B\+GR yarp image 
+\end{DoxyReturn}
+\index{v\+Circle\+Thread@{v\+Circle\+Thread}!process@{process}}
+\index{process@{process}!v\+Circle\+Thread@{v\+Circle\+Thread}}
+\subsubsection[{\texorpdfstring{process(ev\+::v\+Queue \&proc\+Queue, std\+::vector$<$ int $>$ \&proc\+Type)}{process(ev::vQueue &procQueue, std::vector< int > &procType)}}]{\setlength{\rightskip}{0pt plus 5cm}void v\+Circle\+Thread\+::process (
+\begin{DoxyParamCaption}
+\item[{ev\+::v\+Queue \&}]{proc\+Queue, }
+\item[{std\+::vector$<$ int $>$ \&}]{proc\+Type}
+\end{DoxyParamCaption}
+)}\hypertarget{classvCircleThread_ad5f114e5609dd616c9eae9d1755d12c1}{}\label{classvCircleThread_ad5f114e5609dd616c9eae9d1755d12c1}
+
+
+process update the Hough transform (threaded or non-\/threaded) 
+
+
+\begin{DoxyParams}{Parameters}
+{\em adds} & list of events to add \\
+\hline
+{\em subs} & list of events to remove \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+/home/aglover/workspace/projects/event-\/driven/src/processing/v\+Circle/include/v\+Circle\+Observer.\+h\item 
+/home/aglover/workspace/projects/event-\/driven/src/processing/v\+Circle/src/v\+Circle\+Observer.\+cpp\end{DoxyCompactItemize}

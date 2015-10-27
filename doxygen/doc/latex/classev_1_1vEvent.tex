@@ -1,0 +1,62 @@
+\hypertarget{classev_1_1vEvent}{}\section{ev\+:\+:v\+Event Class Reference}
+\label{classev_1_1vEvent}\index{ev\+::v\+Event@{ev\+::v\+Event}}
+
+
+base event class which defines the time the event occurs  
+
+
+
+
+{\ttfamily \#include $<$v\+Codec.\+h$>$}
+
+Inheritance diagram for ev\+:\+:v\+Event\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=4.000000cm]{classev_1_1vEvent}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+virtual event {\bfseries clone} ()\hypertarget{classev_1_1vEvent_a44f88f43a5c6b5aa6d93001a11f9309b}{}\label{classev_1_1vEvent_a44f88f43a5c6b5aa6d93001a11f9309b}
+
+\item 
+virtual void {\bfseries encode} (yarp\+::os\+::\+Bottle \&b) const \hypertarget{classev_1_1vEvent_a66d9e4d833031c146cc0ac3af332b1cc}{}\label{classev_1_1vEvent_a66d9e4d833031c146cc0ac3af332b1cc}
+
+\item 
+virtual bool {\bfseries decode} (const yarp\+::os\+::\+Bottle \&packet, int \&pos)\hypertarget{classev_1_1vEvent_a75132601bf3f958212fd3793b7e53139}{}\label{classev_1_1vEvent_a75132601bf3f958212fd3793b7e53139}
+
+\item 
+virtual yarp\+::os\+::\+Property {\bfseries get\+Content} () const \hypertarget{classev_1_1vEvent_adabb906a71f96c89d6d539c899044622}{}\label{classev_1_1vEvent_adabb906a71f96c89d6d539c899044622}
+
+\item 
+virtual std\+::string {\bfseries get\+Type} () const \hypertarget{classev_1_1vEvent_a90411228dd74d994854b501b7cae7ff1}{}\label{classev_1_1vEvent_a90411228dd74d994854b501b7cae7ff1}
+
+\item 
+virtual int {\bfseries get\+Channel} () const \hypertarget{classev_1_1vEvent_a8ddb67938981d00a7275417e511ad3a5}{}\label{classev_1_1vEvent_a8ddb67938981d00a7275417e511ad3a5}
+
+\item 
+virtual void {\bfseries set\+Channel} ()\hypertarget{classev_1_1vEvent_a2cf5bf1d01ad2757a82b6e07d7e2a5da}{}\label{classev_1_1vEvent_a2cf5bf1d01ad2757a82b6e07d7e2a5da}
+
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+unsigned int {\bfseries stamp}\+:31\hypertarget{classev_1_1vEvent_ad4e003653fa59b37682addefce835490}{}\label{classev_1_1vEvent_ad4e003653fa59b37682addefce835490}
+
+\end{DoxyCompactItemize}
+\subsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+static const std\+::string {\bfseries tag} = \char`\"{}TS\char`\"{}\hypertarget{classev_1_1vEvent_a54bcc0830c5993b56f1f47e23df1de8e}{}\label{classev_1_1vEvent_a54bcc0830c5993b56f1f47e23df1de8e}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+base event class which defines the time the event occurs 
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+/home/aglover/workspace/projects/event-\/driven/libraries/include/i\+Cub/eventdriven/v\+Codec.\+h\item 
+/home/aglover/workspace/projects/event-\/driven/libraries/src/codecs/codec\+\_\+v\+Event.\+cpp\end{DoxyCompactItemize}
