@@ -425,11 +425,10 @@ void interestDraw::draw(cv::Mat &image, const ev::vQueue &eSet, int vTime)
         image.setTo(255);
     }
 
+    if(eSet.empty()) return;
     if(checkStagnancy(eSet) > clearThreshold) {
         return;
     }
-
-    if(eSet.empty()) return;
 
     int r = 2;
     CvScalar c1 = CV_RGB(255, 0, 0);
@@ -454,7 +453,6 @@ void interestDraw::draw(cv::Mat &image, const ev::vQueue &eSet, int vTime)
             cv::circle(image, centr, r, c1, CV_FILLED);
         else
             cv::circle(image, centr, r, c2, CV_FILLED);
-
     }
 
 }

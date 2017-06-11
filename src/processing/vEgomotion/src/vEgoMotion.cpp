@@ -30,7 +30,7 @@ bool vEgomotionModule::configure(yarp::os::ResourceFinder &rf)
     bool strict = rf.check("strict") &&
             rf.check("strict", yarp::os::Value(true)).asBool();
 
-    double threshold = rf.check("thresh", yarp::os::Value(0.17)).asDouble();
+    double threshold = rf.check("thresh", yarp::os::Value(4.0)).asDouble();
 
     //create the thread for reading the events
     egomotionmanager = new vEgomotionManager(threshold);
@@ -110,6 +110,7 @@ vEgomotionManager::vEgomotionManager(double threshold)
 
     this->threshold = threshold;
 
+    //create smv node that will be our features (encoders velocities)
     encvel = new svm_node[6];
 
 //    //create the thread for reading encoders velocities
@@ -199,7 +200,7 @@ void vEgomotionManager::onRead(ev::vBottle &vbot)
             encvels[b] = bot->get(b).asDouble();
             encvel[b].index = b + 1;
             encvel[b].value = encvels[b];
-            //            std::cout << encvels[b] << " ";
+//            std::cout << encvels[b] << " ";
             //            std::cout << encvel[b].value << " ";
         }
         encvel[bot->size()].index = -1;
@@ -231,6 +232,8 @@ void vEgomotionManager::onRead(ev::vBottle &vbot)
             //and the learnt models
             pred_meanv = predict_mean(encvel);
             pred_covv = predict_cov(encvel);
+
+//            std::cout << pred_meanv[0] << " " << pred_meanv[1] << " " << ofp->vx << " " << ofp->vy << std::endl;
 
             //compute metric
             bool isindependent = detect_independent(ofp, pred_meanv, pred_covv);
@@ -264,8 +267,7 @@ void vEgomotionManager::onRead(ev::vBottle &vbot)
         }
     }
 
-    if (strictness) outPort.writeStrict();
-    else outPort.write();
+    outPort.write(strictness);
 
 }
 

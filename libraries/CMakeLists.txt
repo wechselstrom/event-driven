@@ -27,6 +27,7 @@ file(GLOB folder_header
   include/iCub/eventdriven/vCollectSend.h
   include/iCub/eventdriven/svm.h
   include/iCub/eventdriven/all.h
+  include/iCub/eventdriven/svm.h
 )
 
 # Declare groups of source and header files -- makes things pretty in MSVC.

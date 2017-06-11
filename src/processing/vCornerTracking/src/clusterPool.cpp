@@ -61,8 +61,8 @@ std::pair <double, double> clusterPool::update(ev::event<ev::LabelledAE> evt, un
         if(pool[clusterID].getClusterSize() > minevts) {
             //            std::cout << "fitting line to cluster " << clusterID << " to event " << evt->x << " " << evt->y << " " << evt->stamp << std::endl;
             pool[clusterID].fitLine();
-            clustervel.first = pool[clusterID].getVx();
-            clustervel.second = pool[clusterID].getVy();
+            clustervel.first = pool[clusterID].getVx() * 1000000.0;
+            clustervel.second = pool[clusterID].getVy() * 1000000.0;
         }
 
         //        std::cout << pool[clusterID].getVx() << " " << pool[clusterID].getVy() << std::endl;
