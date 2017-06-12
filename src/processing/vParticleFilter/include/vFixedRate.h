@@ -30,6 +30,7 @@ private:
     //particle storage and variables
     //std::priority_queue<vParticle> sortedlist;
     std::vector<vParticle*> indexedlist;
+    std::vector<vParticle*> indexedSnap;
     vParticle *pmax;
     double pwsum;
     double pwsumsq;
@@ -65,7 +66,9 @@ public:
 
     vParticleReader();
     
-    void initialise(unsigned int width , unsigned int height, unsigned int nParticles, unsigned int rate, double nRands, bool adaptive, double pVariance, int camera, bool useROI);
+    void initialise( unsigned int width, unsigned int height, unsigned int nParticles, unsigned int rate
+                         , double nRands, bool adaptive, double pVariance, int camera, bool useROI
+                         , ParticleType particleType );
     
     void setObservationParameters(double minLikelihood, double inlierPar, double outlierPar) {
         obsThresh = minLikelihood; obsInlier = inlierPar; obsOutlier = outlierPar; }

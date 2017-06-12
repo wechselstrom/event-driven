@@ -72,24 +72,13 @@ bool particleProcessor::threadInit()
         }
     }
 
+    debugOut.open(name + "/debug:o");
     //initialise the particles
     vParticle* p;
     
-    //TODO move template generator somewhere else
     double radius = 25;
     int thickness = 4;
-    yarp::sig::Matrix vTemplate(2 * radius + 1 , 2 * radius + 1);
-    vTemplate.zero();
-    for ( double theta = 0; theta < 2 * M_PI ; theta += M_PI/360 ) {
-        
-        for ( int i = 0; i < thickness; ++i ) {
-            
-            int x = (radius - i) * cos(theta);
-            int y = (radius - i) * sin(theta);
-            vTemplate(x + radius  ,y + radius ) = 1;
-        }
-        
-    }
+    yarp::sig::Matrix vTemplate = generateCircularTemplate( radius, thickness );
     
     indexedlist.clear();
     for(int i = 0; i < nparticles; i++) {
@@ -113,6 +102,12 @@ bool particleProcessor::threadInit()
 
         maxtw = std::max(maxtw, p->gettw());
         indexedlist.push_back(p);
+    }
+    
+    for ( int j = 1; j <= 10; ++j ) {
+        for ( int i = 0; i < 10; ++i ) {
+            indexedlist[i*j]->initialiseState(res.width/10 * j,res.height/10 * i,30,50000);
+        }
     }
     
     for ( auto it = indexedlist.begin(); it != indexedlist.end(); it++ ){
@@ -154,37 +149,37 @@ void particleProcessor::run()
         pt = t;
         t = unwrap(currentstamp);
     
-        for ( int i = 0; i < indexedlist.size(); ++i ) {
-            *indexedSnap[i] = *indexedlist[i];
-        }
-        
-        //resampling
-        if(!adaptive || pwsumsq * nparticles > 2.0) {
-            for(int i = 0; i < nparticles; i++) {
-                double rn = nRandomise * (double)rand() / RAND_MAX;
-                if(rn > 1.0)
-                    indexedlist[i]->randomise(res.width, res.height, 30.0, avgtw);
-                else {
-                    double accum = 0.0; int j = 0;
-                    for(j = 0; j < nparticles; j++) {
-                        accum += indexedSnap[j]->getw();
-                        if(accum > rn) break;
-                    }
-                    *indexedlist[i] = *indexedSnap[j];
-                }
-            }
-        }
-
-        //prediction
-        maxtw = 0; //also calculate maxtw for next processing step
-        for(int i = 0; i < nparticles; i++) {
-            indexedlist[i]->predict(t);
-            if(!inbounds(*indexedlist[i]))
-                indexedlist[i]->randomise(res.width, res.height, 30.0, avgtw);
-
-            if(indexedlist[i]->gettw() > maxtw)
-                maxtw = indexedlist[i]->gettw();
-        }
+//        for ( int i = 0; i < indexedlist.size(); ++i ) {
+//            *indexedSnap[i] = *indexedlist[i];
+//        }
+//
+//        //resampling
+//        if(!adaptive || pwsumsq * nparticles > 2.0) {
+//            for(int i = 0; i < nparticles; i++) {
+//                double rn = nRandomise * (double)rand() / RAND_MAX;
+//                if(rn > 1.0)
+//                    indexedlist[i]->randomise(res.width, res.height, 30.0, avgtw);
+//                else {
+//                    double accum = 0.0; int j = 0;
+//                    for(j = 0; j < nparticles; j++) {
+//                        accum += indexedSnap[j]->getw();
+//                        if(accum > rn) break;
+//                    }
+//                    *indexedlist[i] = *indexedSnap[j];
+//                }
+//            }
+//        }
+//
+//        //prediction
+//        maxtw = 0; //also calculate maxtw for next processing step
+//        for(int i = 0; i < nparticles; i++) {
+//            indexedlist[i]->predict(t);
+//            if(!inbounds(*indexedlist[i]))
+//                indexedlist[i]->randomise(res.width, res.height, 30.0, avgtw);
+//
+//            if(indexedlist[i]->gettw() > maxtw)
+//                maxtw = indexedlist[i]->gettw();
+//        }
 
 
         //likelihood observation
@@ -258,48 +253,43 @@ void particleProcessor::run()
         ceg->polarity = 1;
 
         eventsender->pushevent(ceg, yarpstamp);
+        
+        double Timage = yarp::os::Time::now();
+        double ydt = yarpstamp.getTime() - pytime;
+        if(debugOut.getOutputCount() && (ydt > 0.03 || ydt < 0)) {
 
-//        if(vBottleOut.getOutputCount()) {
-//            ev::vBottle &eventsout = vBottleOut.prepare();
-//            eventsout.clear();
+            yarp::sig::ImageOf< yarp::sig::PixelBgr> &image = debugOut.prepare();
+            image.resize(res.width, res.height);
+            image.zero();
 
-//            eventsout.addEvent(ceg);
-//            vBottleOut.setEnvelope(yarpstamp);
-//            vBottleOut.write();
-//        }
+            for(unsigned int i = 0; i < indexedlist.size(); i++) {
 
-//        double Timage = yarp::os::Time::now();
-//        double ydt = yarpstamp.getTime() - pytime;
-//        if(debugOut.getOutputCount() && (ydt > 0.03 || ydt < 0)) {
+                int py = indexedlist[i]->gety();
+                int px = indexedlist[i]->getx();
 
-//            yarp::sig::ImageOf< yarp::sig::PixelBgr> &image = debugOut.prepare();
-//            image.resize(res.width, res.height);
-//            image.zero();
+                double l = 100 * indexedlist[i]->getl();
+                
+                if(py < 0 || py >= res.height || px < 0 || px >= res.width) continue;
+                image(res.width-1 - px, res.height - 1 - py) = yarp::sig::PixelBgr(l, 0, 0);
 
-//            for(unsigned int i = 0; i < indexedlist.size(); i++) {
+                
+            }
+            
+//            drawEvents(image, stw, currentstamp, pmax->gettw(), false);
+            //drawEvents(image, stw, pmax.gettw());
+            //drawEvents(image, stw, eventdriven::vtsHelper::maxStamp());
 
-//                int py = indexedlist[i]->gety();
-//                int px = indexedlist[i]->getx();
+            //drawcircle(image, res.width-1 - avgx, res.height-1 - avgy, avgr+0.5, 1);
 
-//                if(py < 0 || py >= res.height || px < 0 || px >= res.width) continue;
-//                //image(res.width-1 - px, res.height - 1 - py) = yarp::sig::PixelBgr(255, 255, 255);
+            pytime = yarpstamp.getTime();
 
-//            }
-//            drawEvents(image, stw, currentstamp, pmax.gettw(), false);
-//            //drawEvents(image, stw, pmax.gettw());
-//            //drawEvents(image, stw, eventdriven::vtsHelper::maxStamp());
+            //image = likedebug;
+            //drawDistribution(image, indexedlist);
 
-//            //drawcircle(image, res.width-1 - avgx, res.height-1 - avgy, avgr+0.5, 1);
-
-//            pytime = yarpstamp.getTime();
-
-//            //image = likedebug;
-//            //drawDistribution(image, indexedlist);
-
-//            debugOut.setEnvelope(yarpstamp);
-//            debugOut.write();
-//        }
-//        Timage = (yarp::os::Time::now() - Timage)*1000;
+            debugOut.setEnvelope(yarpstamp);
+            debugOut.write();
+        }
+        Timage = (yarp::os::Time::now() - Timage)*1000;
 
         if(scopeOut.getOutputCount()) {
             yarp::os::Bottle &scopedata = scopeOut.prepare();

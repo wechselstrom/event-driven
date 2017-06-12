@@ -80,7 +80,7 @@ bool vParticleModule::configure(yarp::os::ResourceFinder &rf)
     particleCallback = 0;
     leftThread = 0;
     rightThread = 0;
-    ParticleType particleType = Circle;
+    ParticleType particleType = Template;
     
     if(!realtime) {
 

@@ -121,9 +121,28 @@ double approxatan2(double y, double x) {
     
 }
 
+
+yarp::sig::Matrix generateCircularTemplate( double radius, int thickness ) {
+    yarp::sig::Matrix vTemplate( 2 * radius + 1 , 2 * radius + 1 );
+    vTemplate.zero();
+    for ( double theta = 0; theta < 2 * M_PI ; theta += M_PI/360 ) {
+        
+        for ( int i = 0; i < thickness; ++i ) {
+            
+            int x = (radius - i) * cos(theta);
+            int y = (radius - i) * sin(theta);
+            vTemplate(x + radius  ,y + radius ) = 1;
+        }
+        
+    }
+    return vTemplate;
+}
+
 /*////////////////////////////////////////////////////////////////////////////*/
 //VPARTICLETRACKER
 /*////////////////////////////////////////////////////////////////////////////*/
+
+
 
 vParticle::vParticle()
 {

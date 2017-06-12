@@ -10,7 +10,7 @@ vParticleReader::vParticleReader()
 {
 
     strict = false;
-    pmax->resetWeight(0.0);
+//    pmax->resetWeight(0.0);
     srand(yarp::os::Time::now());
 
     avgx = 64;
@@ -31,9 +31,9 @@ vParticleReader::vParticleReader()
 
 }
 
-void vParticleReader::initialise(unsigned int width , unsigned int height,
-                                 unsigned int nParticles, unsigned int rate,
-                                 double nRands, bool adaptive, double pVariance, int camera, bool useROI)
+void vParticleReader::initialise( unsigned int width, unsigned int height, unsigned int nParticles, unsigned int rate
+                                  , double nRands, bool adaptive, double pVariance, int camera, bool useROI
+                                  , ParticleType particleType )
 {
     //parameters
     res.width = width;
@@ -58,9 +58,17 @@ void vParticleReader::initialise(unsigned int width , unsigned int height,
 
     //initialise the particles
     vParticle* p;
-    
+    yarp::sig::Matrix vTemplate = generateCircularTemplate(25,4);
     indexedlist.clear();
     for(int i = 0; i < nparticles; i++) {
+        switch (particleType) {
+            case ParticleType::Circle :
+                p = new vParticleCircle; break;
+            case ParticleType::Template :
+                p = new vParticleTemplate(vTemplate); break;
+        
+        }
+        
         p->initialiseParameters(i, obsThresh, obsOutlier, obsInlier, pVariance, 128);
         p->attachPCB(&pcb);
 
@@ -73,7 +81,11 @@ void vParticleReader::initialise(unsigned int width , unsigned int height,
 
         indexedlist.push_back(p);
     }
-
+    
+    for ( auto it = indexedlist.begin(); it != indexedlist.end(); it++ ){
+        p  = (*it)->clone();
+        indexedSnap.push_back(p);
+    }
 }
 
 /******************************************************************************/
@@ -182,7 +194,9 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
 
         //RESAMPLE
         if(!adaptive || pwsumsq * nparticles > 2.0) {
-            std::vector<vParticle*> indexedSnap = indexedlist;
+            for ( int k = 0; k < indexedlist.size(); ++k ) {
+                *indexedSnap[k] = *indexedlist[k];
+            }
             for(int i = 0; i < nparticles; i++) {
                 double rn = this->nRandomise * pwsum * (double)rand() / RAND_MAX;
                 if(rn > pwsum)
@@ -193,7 +207,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
                         accum += indexedSnap[j]->getw();
                         if(accum > rn) break;
                     }
-                    indexedlist[i] = indexedSnap[j];
+                    *indexedlist[i] = *indexedSnap[j];
                 }
             }
         }
