@@ -37,8 +37,8 @@ private:
     //maximum size of the cluster
     int maxsize;
 
-    //time at which the cluster had the last update
-    unsigned int tlast_update;
+    //last time at which the cluster was updated
+    double tlast_update;
 
     //matrix to check if the event has been already added
     std::vector< std::vector < int > > checkevt;
@@ -53,7 +53,7 @@ public:
     void initialise(int maxsize);
     double dist2event(ev::event<ev::LabelledAE> evt);
     double getSpatialDist(ev::event<ev::LabelledAE> evt);
-    void addEvent(ev::event<ev::LabelledAE> evt, unsigned int currt);
+    void addEvent(ev::event<ev::LabelledAE> evt, double currt);
     ev::event<> getLastEvent();
     ev::event<> getFirstEvent();
     void fitLine();

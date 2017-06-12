@@ -32,28 +32,31 @@ private:
     //we store the pool of clusters in a vector
     std::vector <cluster> pool;
 
-    //threshold on the distance between the event and the cluster
-    int mindistance;
+    //minimum number of events in the cluster to start tracking it
+    int minevts;
+
+    //minimum distance the cluster has to move before tracking it
+    double mindistance;
+
+    //maximum distance the cluster has to move before killing it
+    double maxdistance;
 
     //time from the last update to kill the cluster
-    unsigned int trefresh;
+    double trefresh;
 
     //maximum size of the single cluster
     int maxsize;
-
-    //minimum number of events to fit the line
-    int minevts;
 
     //check for the first event
     bool firstevent;
 
 public:
 
-    clusterPool(int mindistance, unsigned int trefresh, int maxsize, int minevts);
+    clusterPool(double mindistance, double maxdistance, double trefresh, int maxsize, int minevts);
 
-    std::pair<double, double> update(ev::event<ev::LabelledAE> evt, unsigned int currt);
-    std::pair<double, double> updateNew(ev::event<ev::LabelledAE> evt, unsigned int currt);
-    void createNewCluster(ev::event<ev::LabelledAE> evt, unsigned int currt);
+    std::pair<double, double> update(ev::event<ev::LabelledAE> evt, double currt);
+    std::pair<double, double> updateNew(ev::event<ev::LabelledAE> evt, double currt);
+    void createNewCluster(ev::event<ev::LabelledAE> evt, double currt);
     void killOldCluster(int clusterID);
     std::vector <cluster> getPool();
 //    cluster getCluster(int clusterID);

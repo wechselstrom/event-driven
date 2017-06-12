@@ -19,14 +19,15 @@
 
 using namespace ev;
 
-vCornerTrackingCallback::vCornerTrackingCallback(int height, int width, int mindistance, unsigned int trefresh, int maxsize, int minevts)
+vCornerTrackingCallback::vCornerTrackingCallback(int height, int width, int mindistance, double maxdistance, unsigned int trefresh, int maxsize, int minevts)
 {
     this->height = height;
     this->width = width;
     this->mindistance = mindistance;
+    this->maxdistance = maxdistance;
     this->trefresh = trefresh;
     this->minevts = minevts;
-    clusterSet = new clusterPool(mindistance, trefresh, maxsize, minevts);
+    clusterSet = new clusterPool(mindistance, maxdistance, trefresh, maxsize, minevts);
 
 }
 /**********************************************************/

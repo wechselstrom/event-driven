@@ -60,20 +60,21 @@ private:
     unsigned int width;
     std::string name;
     bool strict;
-    int mindistance;
-    unsigned int trefresh;
+    double mindistance;
+    double maxdistance;
+    double trefresh;
     int maxsize;
     int minevts;
 
     //set of clusters
     clusterPool *clusterSet;
 
-    std::ofstream outfile;
+//    std::ofstream outfile;
 
 public:
 
     vCornerTrackingThread(unsigned int height, unsigned int width, std::string name, bool strict,
-                          int mindistance, unsigned int trefresh, int maxsize, int minevts);
+                          double mindistance, double maxdistance, double trefresh, int maxsize, int minevts);
     bool threadInit();
     bool open(std::string portname);
     void onStop();

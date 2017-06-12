@@ -3,17 +3,18 @@
 using namespace ev;
 
 vCornerTrackingThread::vCornerTrackingThread(unsigned int height, unsigned int width, std::string name, bool strict,
-                                             int mindistance, unsigned int trefresh, int maxsize, int minevts)
+                                             double mindistance, double maxdistance, double trefresh, int maxsize, int minevts)
 {
     this->height = height;
     this->width = width;
     this->name = name;
     this->strict = strict;
     this->mindistance = mindistance;
+    this->maxdistance = maxdistance;
     this->trefresh = trefresh;
     this->maxsize = maxsize;
     this->minevts = minevts;
-    clusterSet = new clusterPool(mindistance, trefresh, maxsize, minevts);
+    clusterSet = new clusterPool(mindistance, maxdistance, trefresh, maxsize, minevts);
 
 //    outfile.open("clustersvel.txt");
 
@@ -81,7 +82,7 @@ void vCornerTrackingThread::run()
             }
 
             //unwrap timestamp
-            unsigned int currt = unwrapper(cep->stamp);
+            double currt = vtsHelper::tsscaler * unwrapper(cep->stamp);
 
             //update cluster velocity
 //            vel = clusterSet->update(cep, currt);
@@ -100,8 +101,8 @@ void vCornerTrackingThread::run()
                 if(debugPort.getOutputCount()) {
                     yarp::os::Bottle &distbottleout = debugPort.prepare();
                     distbottleout.clear();
-                    distbottleout.addDouble(vel.first * 1000000);
-                    distbottleout.addDouble(vel.second * 1000000);
+                    distbottleout.addDouble(vel.first);
+                    distbottleout.addDouble(vel.second);
                     debugPort.write();
                 }
 

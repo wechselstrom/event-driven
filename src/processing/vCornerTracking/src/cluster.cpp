@@ -45,15 +45,17 @@ double cluster::dist2event(ev::event<LabelledAE> evt)
 
 double cluster::getSpatialDist(ev::event<LabelledAE> evt)
 {
-    auto first = is_event<LabelledAE>(this->getFirstEvent());
-    int dx = first->x - evt->x;
-    int dy = first->y - evt->y;
+    auto firste = is_event<LabelledAE>(this->getFirstEvent());
+    int dx = firste->x - evt->x;
+    int dy = firste->y - evt->y;
+//    std::cout << firste->x << " " << evt->x << " " << firste->y << " " << evt->y << " " << dx << " " << dy << std::endl;
+    double dist = sqrt(dx*dx+dy*dy);
 
-    return sqrt(dx*dx + dy*dy);
+    return dist;
 
 }
 
-void cluster::addEvent(ev::event<LabelledAE> evt, unsigned int currt)
+void cluster::addEvent(ev::event<LabelledAE> evt, double currt)
 {
 
     //discard the event if it's already in the cluster
@@ -195,10 +197,19 @@ void cluster::fitLine()
 bool cluster::isInTriangle(ev::event<LabelledAE> evt, unsigned int currt)
 {
     auto apex = is_event<LabelledAE>(this->getLastEvent());
-    double dx = (evt->x - apex->x) / (currt - tlast_update);
-    double dy = (evt->y - apex->y) / (currt - tlast_update);
+//    std::cout << currt << " " << tlast_update << " " << currt - tlast_update << std::endl;
 
-    return (sqrt(dx*dx + dy*dy) <= 10.0);
+    double dx = (double)(evt->x - apex->x) / (currt - tlast_update);
+    double dy = (double)(evt->y - apex->y) / (currt - tlast_update);
+    double dist = sqrt(dx*dx + dy*dy);
+
+//    std::cout << evt->x << " " << apex->x << " " << (evt->x - apex->x) << " " << (double)(evt->x - apex->x) / (currt - tlast_update) << std::endl;
+//    std::cout << evt->y << " " << apex->y << " " << (evt->y - apex->y) << " " << (double)(evt->y - apex->y) / (currt - tlast_update) << std::endl;
+//    std::cout << dx << " " << dy << std::endl;
+
+//    std::cout << "dist " << dist << std::endl;
+
+    return dist <= 10.0;
 
 }
 

@@ -46,6 +46,7 @@ private:
     int height;
     int width;
     int mindistance;
+    double maxdistance;
     unsigned int trefresh;
     int maxsize;
     int minevts;
@@ -55,7 +56,7 @@ private:
 
 public:
 
-    vCornerTrackingCallback(int height, int width, int mindistance, unsigned int trefresh, int maxsize, int minevts);
+    vCornerTrackingCallback(int height, int width, int mindistance, double maxdistance, unsigned int trefresh, int maxsize, int minevts);
 
     bool    open(const std::string moduleName, bool strictness = false);
     void    close();
