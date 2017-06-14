@@ -18,13 +18,13 @@
 
 <module>
     <name>vCornerRT</name>
-    <parameters>--strict --width 304 --height 240 --callback false --nthreads 8 --tempsize 0.1</parameters>
+    <parameters>--strict --width 304 --height 240 --callback false --nthreads 8 --tempsize 0.1 --thresh 10.0</parameters>
     <node>icub23</node>
 </module>
 
 <module>
     <name>vCornerTracking</name>
-    <parameters> --strict --width 304 --height 240 --callback false --minevts 10 --mindist 3 </parameters>
+    <parameters> --strict --width 304 --height 240 --callback false --minevts 3 --mindist 3.0 </parameters>
     <node>icub23</node>
 </module>
 

@@ -23,9 +23,10 @@ cluster::cluster()
 {
 
     tlast_update = 0.0;
-    this->maxsize = 20; //maxsize;
+    this->maxsize = 30; //maxsize;
     vel.first = 0.0;
     vel.second = 0.0;
+    fiterr = 0.0;
 
     //TODO
     checkevt.resize(240);
@@ -62,6 +63,7 @@ bool cluster::addEvent(ev::event<LabelledAE> evt, double currt)
     bool check;
 
     //discard the event if it's already in the cluster
+//    std::cout << checkevt[evt->y][evt->x] << std::endl;
     if(checkevt[evt->y][evt->x] == 0) {
         checkevt[evt->y][evt->x] = 1;
         cluster_.push_back(evt);
@@ -165,13 +167,11 @@ void cluster::fitLine()
     v = V.getCol(0);
 
     //compute fitting error
-    double fiterr = S[1]*S[1] + S[2]*S[2];
-
-    std::cout << count << " " << fiterr << std::endl;
+    fiterr = S[1]*S[1] + S[2]*S[2];
 
     //only output when the fitting error is small
     //TODO
-    if(fiterr < 5.0) {
+    if(fiterr < 20.0) {
         //    std::cout << "from line fitting " << -v[0]/v[2] * 1000000 << " " << -v[1]/v[2] * 1000000 << std::endl;
         vel.first = -v[0]/v[2];
         vel.second = -v[1]/v[2];
@@ -257,6 +257,11 @@ double cluster::getVy()
 void cluster::removeFirst()
 {
     cluster_.pop_front();
+}
+
+double cluster::getFitErr()
+{
+    return fiterr;
 }
 
 //empty line to make gcc happy

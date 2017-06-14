@@ -40,15 +40,14 @@ private:
     //last time at which the cluster was updated
     double tlast_update;
 
+    //matrix to check if the event has been already added
+    std::vector< std::vector < int > > checkevt;
 
     //cluster velocity
     std::pair <double, double> vel;
+    double fiterr;
 
 public:
-
-
-    //matrix to check if the event has been already added
-    std::vector< std::vector < int > > checkevt;
 
     cluster(); // {}
 
@@ -64,6 +63,7 @@ public:
     double getVx();
     double getVy();
     void removeFirst();
+    double getFitErr();
 
 
 //    ev::vQueue getCluster();
