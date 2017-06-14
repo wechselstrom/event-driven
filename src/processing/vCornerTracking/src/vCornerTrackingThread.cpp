@@ -72,6 +72,9 @@ void vCornerTrackingThread::run()
         if(isStopping()) break;
 
         std::pair <double, double> vel;
+        double vx = 0.0;
+        double vy = 0.0;
+        int count = 0;
         for(ev::vQueue::iterator qi = q->begin(); qi != q->end(); qi++) {
 
             //current corner event
@@ -85,8 +88,8 @@ void vCornerTrackingThread::run()
             double currt = vtsHelper::tsscaler * unwrapper(cep->stamp);
 
             //update cluster velocity
-//            vel = clusterSet->update(cep, currt);
-            vel = clusterSet->updateNew(cep, currt);
+            vel = clusterSet->update(cep, currt);
+//            vel = clusterSet->updateNew(cep, currt);
 //            std::cout << "becomes " << vel.first << " " << vel.second << std::endl;
 //            std::cout << std::endl;
 
@@ -98,6 +101,8 @@ void vCornerTrackingThread::run()
 
 //                outfile << currt * vtsHelper::tsscaler << " " << vel.first * 1000000 << " " << vel.second * 1000000 << std::endl;
 
+                outthread.pushevent(fe, yarpstamp);
+
                 if(debugPort.getOutputCount()) {
                     yarp::os::Bottle &distbottleout = debugPort.prepare();
                     distbottleout.clear();
@@ -106,10 +111,14 @@ void vCornerTrackingThread::run()
                     debugPort.write();
                 }
 
-                outthread.pushevent(fe, yarpstamp);
-
+                vx += vel.first;
+                vy += vel.second;
+                count++;
             }
         }
+
+        vx = vx / count;
+        vy = vy / count;
 
         allocatorCallback.scrapQ();
 

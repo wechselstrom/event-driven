@@ -40,28 +40,31 @@ private:
     //last time at which the cluster was updated
     double tlast_update;
 
-    //matrix to check if the event has been already added
-    std::vector< std::vector < int > > checkevt;
 
     //cluster velocity
     std::pair <double, double> vel;
 
 public:
 
-    cluster() {}
 
-    void initialise(int maxsize);
+    //matrix to check if the event has been already added
+    std::vector< std::vector < int > > checkevt;
+
+    cluster(); // {}
+
     double dist2event(ev::event<ev::LabelledAE> evt);
     double getSpatialDist(ev::event<ev::LabelledAE> evt);
-    void addEvent(ev::event<ev::LabelledAE> evt, double currt);
+    bool addEvent(ev::event<ev::LabelledAE> evt, double currt);
     ev::event<> getLastEvent();
     ev::event<> getFirstEvent();
     void fitLine();
-    unsigned int getLastUpdate();
+    double getLastUpdate();
     bool isInTriangle(ev::event<ev::LabelledAE> evt, unsigned int currt);
     int getClusterSize();
     double getVx();
     double getVy();
+    void removeFirst();
+
 
 //    ev::vQueue getCluster();
 

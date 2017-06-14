@@ -31,63 +31,65 @@ clusterPool::clusterPool(double mindistance, double maxdistance, double trefresh
 
 std::pair <double, double> clusterPool::update(ev::event<ev::LabelledAE> evt, double currt)
 {
-//    double dist = 0.0, mindist = mindistance;
-//    int clusterID = -1;
-//    std::pair <double, double> clustervel;
+    double dist = 0.0, mindist = mindistance;
+    int clusterID = -1;
+    std::pair <double, double> clustervel;    
+    clustervel.first = 0.0;
+    clustervel.second = 0.0;
 
-//    //if it's the first event, we create the first cluster
-//    if(firstevent) {
-//        firstevent = false;
-//        createNewCluster(evt, currt);
-//    }
+    //if it's the first event, we create the first cluster
+    if(firstevent) {
+        firstevent = false;
+        createNewCluster(evt, currt);
+    }
+    else {
 
-//    //compute the distance from the current event to each cluster
-//    for(unsigned int i = 0; i < pool.size(); i++) {
-//        dist = pool[i].dist2event(evt);
+        //compute the distance from the current event to each cluster
+        for(unsigned int i = 0; i < pool.size(); i++) {
+            dist = pool[i].dist2event(evt);
 
-//        //compute the minimum distance from all clusters
-//        if(dist < mindist) {
-//            mindist = dist;
-//            clusterID = i;
-//            pool[clusterID].addEvent(evt, currt);
-////            std::cout << "updating " << clusterID << " at time " << currt << std::endl;
-//        }
-//    }
+            //compute the minimum distance from all clusters
+            if(dist < mindist) {
+                mindist = dist;
+                clusterID = i;
+            }
+        }
 
-//    clustervel.first = 0.0;
-//    clustervel.second = 0.0;
-//    //if the minimum distance is less than a predefined threshold
-//    if(clusterID >= 0) {
+        //if a cluster was found
+        if(clusterID >= 0) {
 
-//        if(pool[clusterID].getClusterSize() > minevts) {
-//            //            std::cout << "fitting line to cluster " << clusterID << " to event " << evt->x << " " << evt->y << " " << evt->stamp << std::endl;
-//            pool[clusterID].fitLine();
-//            clustervel.first = pool[clusterID].getVx() * 1000000.0;
-//            clustervel.second = pool[clusterID].getVy() * 1000000.0;
-//        }
+            //add event to the minimum distance cluster
+            pool[clusterID].addEvent(evt, currt);
 
-//        //        std::cout << pool[clusterID].getVx() << " " << pool[clusterID].getVy() << std::endl;
+            //start tracking cluster
+            if(pool[clusterID].getClusterSize() > minevts && pool[clusterID].getSpatialDist(evt) > mindistance) {
+                //            std::cout << "start tracking cluster " << clusterID << std::endl;
+                pool[clusterID].fitLine();
+                clustervel.first = pool[clusterID].getVx() * 1000000.0;
+                clustervel.second = pool[clusterID].getVy() * 1000000.0;
+            }
 
-//    } else {
+        } else {
 
-//        //create new cluster
-//        createNewCluster(evt, currt);
-//        clusterID = pool.size() - 1; // pool.size() + 1;
-////        std::cout << "creating new cluster " << clusterID << std::endl;
-//    }
+            //create new cluster
+            createNewCluster(evt, currt);
+            clusterID = pool.size() - 1;
+            //        std::cout << "creating new cluster " << clusterID << std::endl;
+        }
 
-//    //check for old clusters
-//    for(unsigned int i = 0; i < pool.size(); i++) {
-////        std::cout << "for cluster " << i << " " << " last update at " << pool[i].getLastUpdate() << " " << currt - pool[i].getLastUpdate() << std::endl;
-//        if( (currt - pool[i].getLastUpdate()) > trefresh) {
-////            std::cout << " killing cluster " << i << " " << pool.size() << std::endl;
-//            killOldCluster(i);
-//        }
-//    }
-////    std::cout << std::endl;
+        //check for old clusters
+        for(unsigned int i = 0; i < pool.size(); i++) {
+            if( (currt - pool[i].getLastUpdate()) > trefresh) {
+//                std::cout << " killing cluster " << i << " " << currt << " " << pool[i].getLastUpdate() << std::endl;
+                killOldCluster(i);
+            }
+        }
 
-//    //return the velocity of the current cluster
-//    return clustervel;
+    }
+//    std::cout << std::endl;
+
+    //return the velocity of the current cluster
+    return clustervel;
 
 }
 
@@ -108,15 +110,15 @@ std::pair <double, double> clusterPool::updateNew(ev::event<ev::LabelledAE> evt,
         //for each created cluster
         for(unsigned int i = 0; i < pool.size(); i++) {
 
-//            std::cout << "test " << std::endl;
             //if the event is within the triangle add it
             //CHECK IF THIS HAPPENS FOR MORE CLUSTERS
             if(pool[i].isInTriangle(evt, currt)) {
-//                std::cout << "adding evt " << evt->x << " " << evt->y << " to cluster " << i << std::endl;
-                clusterID = i;
-                pool[clusterID].addEvent(evt, currt);
+//                std::cout << "adding evt " << evt->x << " " << evt->y << " to cluster " << i << " " << std::endl;
+                if(pool[i].addEvent(evt, currt) == true) {
+                    clusterID = i;
+//                    break;
+                }
             }
-
         }
 
         if(clusterID >= 0) {
@@ -132,19 +134,26 @@ std::pair <double, double> clusterPool::updateNew(ev::event<ev::LabelledAE> evt,
 
         } else {
             //create new cluster
-//            std::cout << "create new cluster " << std::endl;
             createNewCluster(evt, currt);
             clusterID = pool.size() - 1;
+//            std::cout << "create new cluster " << clusterID << std::endl;
         }
 
-        //kill the cluster if it moved too much
-//        std::cout << "cluster ID " << clusterID << std::endl;
-//        std::cout << "distance " << pool[clusterID].getSpatialDist(evt) << std::endl;
-        if(pool[clusterID].getSpatialDist(evt) > maxdistance) {
-//            std::cout << "killing cluster " << clusterID << std::endl;
-            killOldCluster(clusterID);
+        //check for old clusters
+        for(unsigned int i = 0; i < pool.size(); i++) {
+            if( (currt - pool[i].getLastUpdate()) > trefresh) {
+    //                std::cout << " killing cluster " << i << " " << std::endl;
+                killOldCluster(i);
+            }
         }
+
+//        if(pool[clusterID].getSpatialDist(evt) > maxdistance) {
+////            std::cout << "killing cluster " << clusterID << std::endl;
+//            killOldCluster(clusterID);
+//        }
     }
+
+//    std::cout << std::endl;
 
     return clustervel;
 
@@ -153,7 +162,6 @@ std::pair <double, double> clusterPool::updateNew(ev::event<ev::LabelledAE> evt,
 void clusterPool::createNewCluster(ev::event<ev::LabelledAE> evt, double currt)
 {
     cluster newcluster;
-    newcluster.initialise(maxsize);
     newcluster.addEvent(evt, currt);
     pool.push_back(newcluster);
 }

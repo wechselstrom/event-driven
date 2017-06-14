@@ -15,11 +15,11 @@
                color="Red"
                type="lines"
                size="1" />
-        <graph remote="/vEgomotion/score:o"
-               index="1"
+       <!-- <graph remote="/vEgomotion/score:o"
+               index="2"
                color="Red"
                type="bars"
-               size="1" />
+               size="1" /> !-->
     </plot>
     <plot gridx="0"
           gridy="1"
@@ -32,14 +32,14 @@
           interval="1000"
           bgcolor="#EEFFEE">
         <graph remote="/vEgomotion/score:o"
-               index="2"
+               index="1"
                color="Blue"
                type="lines"
                size="1" />
-        <graph remote="/vEgomotion/score:o"
+       <!-- <graph remote="/vEgomotion/score:o"
                index="3"
                color="Blue"
                type="bars"
-               size="1" />
+               size="1" /> !-->
     </plot>
 </portscope>

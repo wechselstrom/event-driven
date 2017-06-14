@@ -19,11 +19,11 @@
 
 using namespace ev;
 
-void cluster::initialise(int maxsize)
+cluster::cluster()
 {
 
     tlast_update = 0.0;
-    this->maxsize = maxsize;
+    this->maxsize = 30; //maxsize;
     vel.first = 0.0;
     vel.second = 0.0;
 
@@ -31,6 +31,7 @@ void cluster::initialise(int maxsize)
     for(int y = 0; y < 240; y++) {
         checkevt[y].resize(304);
     }
+
 }
 
 double cluster::dist2event(ev::event<LabelledAE> evt)
@@ -55,7 +56,7 @@ double cluster::getSpatialDist(ev::event<LabelledAE> evt)
 
 }
 
-void cluster::addEvent(ev::event<LabelledAE> evt, double currt)
+bool cluster::addEvent(ev::event<LabelledAE> evt, double currt)
 {
 
     //discard the event if it's already in the cluster
@@ -63,8 +64,13 @@ void cluster::addEvent(ev::event<LabelledAE> evt, double currt)
         checkevt[evt->y][evt->x] = 1;
         cluster_.push_back(evt);
         tlast_update = currt;
+//        std::cout << "added " << std::endl;
+        return true;
     }
-
+    else {
+//        std::cout << "discarded " << std::endl;
+        return false;
+    }
 //    std::cout << "last update at " << tlast_update << std::endl;
 
 //    //remove the first event added
@@ -209,11 +215,12 @@ bool cluster::isInTriangle(ev::event<LabelledAE> evt, unsigned int currt)
 
 //    std::cout << "dist " << dist << std::endl;
 
+    //TODO: THIS DOESN'T HAVE TO BE HARDCODED!!!
     return dist <= 10.0;
 
 }
 
-unsigned int cluster::getLastUpdate()
+double cluster::getLastUpdate()
 {
     return tlast_update;
 }
@@ -231,6 +238,11 @@ double cluster::getVx()
 double cluster::getVy()
 {
     return vel.second;
+}
+
+void cluster::removeFirst()
+{
+    cluster_.pop_front();
 }
 
 //empty line to make gcc happy
