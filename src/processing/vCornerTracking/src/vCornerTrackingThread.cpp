@@ -93,6 +93,7 @@ void vCornerTrackingThread::run()
 //            std::cout << "becomes " << vel.first << " " << vel.second << std::endl;
 //            std::cout << std::endl;
 
+            //we output velocity if they are both non-zero
             if(vel.first && vel.second) {
                 //create new flow event and assign to it the velocity of the current cluster
                 auto fe = make_event<FlowEvent>(cep);

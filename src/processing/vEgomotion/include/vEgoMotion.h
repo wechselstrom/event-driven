@@ -79,6 +79,11 @@ private:
     const char *sigma_vx_file = "/usr/local/src/robot/event-driven/build/bin/sigmavx.model";
     const char *sigma_vy_file = "/usr/local/src/robot/event-driven/build/bin/sigmavy.model";
     const char *sigma_vxvy_file = "/usr/local/src/robot/event-driven/build/bin/sigmavxvy.model";
+//    const char *mu_vx_file = "/home/vvasco/dev/robotology/event-driven/build/bin/muvx.scale.model";
+//    const char *mu_vy_file = "/home/vvasco/dev/robotology/event-driven/build/bin/muvy.scale.model";
+//    const char *sigma_vx_file = "/home/vvasco/dev/robotology/event-driven/build/bin/sigmavx.scale.model";
+//    const char *sigma_vy_file = "/home/vvasco/dev/robotology/event-driven/build/bin/sigmavy.scale.model";
+//    const char *sigma_vxvy_file = "/home/vvasco/dev/robotology/event-driven/build/bin/sigmavxvy.scale.model";
     struct svm_model *mu_vx, *mu_vy, *sigma_vx, *sigma_vy, *sigma_vxvy;
 
     //encoders velocities
