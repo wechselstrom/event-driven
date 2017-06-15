@@ -254,7 +254,7 @@ void particleProcessor::run()
             pwsumsq += pow(indexedlist[i]->getw(), 2.0);
             if(indexedlist[i]->getw() > pmax->getw())
                 pmax = indexedlist[i];
-            maxlikelihood = std::max(maxlikelihood, indexedlist[i].getl());
+            maxlikelihood = std::max(maxlikelihood, indexedlist[i]->getl());
         }
 
         //extract target position
