@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2015 iCub Facility - Istituto Italiano di Tecnologia
+ * Author: arren.glover@iit.it
+ * Permission is granted to copy, distribute, and/or modify this program
+ * under the terms of the GNU General Public License, version 2 or any
+ * later version published by the Free Software Foundation.
+ *
+ * A copy of the license can be found at
+ * http://www.robotcub.org/icub/license/gpl.txt
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details
+*/
+
 #ifndef __VSURFACEHANDLER__
 #define __VSURFACEHANDLER__
 
@@ -13,6 +29,7 @@
 
 namespace ev {
 
+/// \brief an asynchronous reading port that accepts vBottles and decodes them
 class queueAllocator : public yarp::os::BufferedPort<ev::vBottle>
 {
 private:
@@ -70,6 +87,11 @@ public:
 
     }
 
+    int queryunprocessed()
+    {
+        return qq.size();
+    }
+
     void scrapQ()
     {
         m.lock();
@@ -86,6 +108,7 @@ public:
 
 };
 
+/// \brief asynchronously read events and push them in a vSurface
 class surfaceThread : public yarp::os::Thread
 {
 private:
@@ -201,6 +224,7 @@ public:
 
 };
 
+/// \brief asynchronously read events and push them in a historicalSurface
 class hSurfThread : public yarp::os::Thread
 {
 private:
@@ -258,6 +282,9 @@ public:
 
     void run()
     {
+        static int maxqs = 4;
+        bool allowproc = true;
+
         while(true) {
 
             ev::vQueue *q = 0;
@@ -266,24 +293,34 @@ public:
             }
             if(isStopping()) break;
 
-            for(ev::vQueue::iterator qi = q->begin(); qi != q->end(); qi++) {
 
+            int nqs = allocatorCallback.queryunprocessed();
+
+            if(allowproc)
                 m.lock();
 
-                int dt = (*qi)->stamp - vstamp;
-                if(dt < 0) dt += vtsHelper::max_stamp;
-                cpudelayL += dt;
-                cpudelayR += dt;
-                vstamp = (*qi)->stamp;
+            if(nqs >= maxqs)
+                allowproc = false;
+            else if(nqs < maxqs)
+                allowproc = true;
+
+            int dt = q->back()->stamp - vstamp;
+            if(dt < 0) dt += vtsHelper::max_stamp;
+            cpudelayL += dt;
+            cpudelayR += dt;
+            vstamp = q->back()->stamp;
+
+            for(ev::vQueue::iterator qi = q->begin(); qi != q->end(); qi++) {
 
                 if((*qi)->getChannel() == 0)
                     surfaceleft.addEvent(*qi);
                 else if((*qi)->getChannel() == 1)
                     surfaceright.addEvent(*qi);
 
-                m.unlock();
-
             }
+
+            if(allowproc)
+                m.unlock();
 
             allocatorCallback.scrapQ();
 
@@ -311,8 +348,7 @@ public:
             }
 
             q = surfaceleft.getSurface(cpudelayL, querySize, r, x, y);
-        }
-        else {
+        } else {
 
             cpudelayR -= (cpunow - cputimeR) * vtsHelper::vtsscaler * 1.01;
             cputimeR = cpunow;
@@ -401,8 +437,15 @@ public:
 
     }
 
+    int queryQDelay()
+    {
+        return allocatorCallback.queryunprocessed();
+    }
+
 };
 
+/// \brief automatically accept events from a port and push them into a
+/// vTempWindow
 class tWinThread : public yarp::os::Thread
 {
 private:
@@ -490,6 +533,8 @@ public:
 
 };
 
+/// \brief automatically accept multiple event types from different ports
+/// (e.g. as in the vFramer)
 class syncvstreams
 {
 private:

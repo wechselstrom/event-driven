@@ -16,14 +16,14 @@ double generateGaussianNoise(double mu, double sigma)
     generate = !generate;
     
     if (!generate)
-        return z1 * sigma + mu;
-    
+       return z1 * sigma + mu;
+
     double u1, u2;
     do
-    {
-        u1 = rand() * (1.0 / RAND_MAX);
-        u2 = rand() * (1.0 / RAND_MAX);
-    }
+     {
+       u1 = rand() * (1.0 / RAND_MAX);
+       u2 = rand() * (1.0 / RAND_MAX);
+     }
     while ( u1 <= epsilon );
     
     z0 = sqrt(-2.0 * log(u1)) * cos(two_pi * u2);
@@ -53,26 +53,26 @@ void drawEvents(yarp::sig::ImageOf< yarp::sig::PixelBgr> &image, ev::vQueue &q, 
 
 void drawcircle(yarp::sig::ImageOf<yarp::sig::PixelBgr> &image, int cx, int cy, int cr, int id)
 {
-    
+
     for(int y = -cr; y <= cr; y++) {
         for(int x = -cr; x <= cr; x++) {
             if(fabs(sqrt(pow(x, 2.0) + pow(y, 2.0)) - (double)cr) > 0.8) continue;
             int px = cx + x; int py = cy + y;
             if(py < 0 || py > image.height()-1 || px < 0 || px > image.width()-1) continue;
             switch(id) {
-                case(0): //green
-                    image(px, py) = yarp::sig::PixelBgr(0, 255, 0);
-                    break;
-                case(1): //blue
-                    image(px, py) = yarp::sig::PixelBgr(0, 0, 255);
-                    break;
-                case(2): //red
-                    image(px, py) = yarp::sig::PixelBgr(255, 0, 0);
-                    break;
-                default:
-                    image(px, py) = yarp::sig::PixelBgr(255, 255, 0);
-                    break;
-                
+            case(0): //green
+                image(px, py) = yarp::sig::PixelBgr(0, 255, 0);
+                break;
+            case(1): //blue
+                image(px, py) = yarp::sig::PixelBgr(0, 0, 255);
+                break;
+            case(2): //red
+                image(px, py) = yarp::sig::PixelBgr(255, 0, 0);
+                break;
+            default:
+                image(px, py) = yarp::sig::PixelBgr(255, 255, 0);
+                break;
+
             }
             
         }
@@ -142,12 +142,11 @@ yarp::sig::Matrix generateCircularTemplate( double radius, int thickness ) {
 //VPARTICLETRACKER
 /*////////////////////////////////////////////////////////////////////////////*/
 
-
-
 vParticle::vParticle()
 {
     weight = 1.0;
     likelihood = 1.0;
+    predlike = 1.0;
     minlikelihood = 20.0;
     inlierParameter = 1.5;
     outlierParameter = 3.0;
@@ -164,8 +163,8 @@ vParticle::vParticle()
 }
 
 void vParticle::initialiseParameters(int id, double minLikelihood,
-        double outlierParam, double inlierParam,
-        double variance, int angbuckets)
+                                     double outlierParam, double inlierParam,
+                                     double variance, int angbuckets)
 {
     this->id = id;
     this->minlikelihood = minLikelihood;
@@ -185,7 +184,7 @@ vParticle& vParticle::operator=(const vParticle &rhs)
     this->tw = rhs.tw;
     this->weight = rhs.weight;
     this->stamp = rhs.stamp;
-    
+    return *this;
 }
 
 void vParticle::initialiseState(double x, double y, double r, double tw)
@@ -216,21 +215,41 @@ void vParticle::resetRadius(double value)
     this->r = value;
 }
 
+void vParticle::updateWeightSync(double normval)
+{
+    weight = weight / normval;
+}
+
 void vParticle::predict(unsigned long timestamp)
 {
     double dt = 0;
     if(stamp) dt = timestamp - this->stamp;
     stamp = timestamp;
-    
-    tw += dt;
-    tw = std::max(tw, 50000.0);
-    
-    x = generateGaussianNoise(x, variance);
-    y = generateGaussianNoise(y, variance);
-    r = generateGaussianNoise(r, variance * 0.4);
-    
-}
 
+    tw += std::max(dt, 12500.0);
+    //tw = std::max(tw, 50000.0);
+
+    //double k = 1.0 / sqrt(2.0 * M_PI * variance * variance);
+
+    double gx = generateGaussianNoise(0, variance);
+    double gy = generateGaussianNoise(0, variance);
+    double gr = generateGaussianNoise(0, variance * 0.4);
+
+    x += gx;
+    y += gy;
+    r += gr;
+
+    double pr = exp(-(gr*gr) / (2.0 * 0.16 * variance * variance));
+    double py = exp(-(gy*gy) / (2.0 * variance * variance));
+    double px = exp(-(gx*gx) / (2.0 * variance * variance));
+    predlike = px * py * pr;
+
+
+//    x = generateGaussianNoise(x, variance);
+//    y = generateGaussianNoise(y, variance);
+//    r = generateGaussianNoise(r, variance * 0.4);
+
+}
 
 void vParticle::concludeLikelihood()
 {
@@ -239,14 +258,14 @@ void vParticle::concludeLikelihood()
     int n = 0;
     
     for(unsigned int i = 0; i < angdist.size(); i++) {
-        if(angdist[i] == 0) continue;
+        if(angdist[i] == 0 || angdist[i] > maxtw) continue;
         dtavg += angdist[i];
         n++;
     }
-    if(n > 10) {
+    if(n > minlikelihood) {
         dtavg /= n;
         for(unsigned int i = 0; i < angdist.size(); i++) {
-            if(angdist[i] == 0) continue;
+            if(angdist[i] == 0 || angdist[i] > maxtw) continue;
             dtvar += (dtavg - angdist[i]) * (dtavg - angdist[i]);
         }
         dtvar /= n;
@@ -256,13 +275,8 @@ void vParticle::concludeLikelihood()
     }
     
     if(likelihood > minlikelihood) tw = maxtw;
-    weight = likelihood * weight * dtvar;
+    weight = likelihood * weight * dtvar;// * predlike;
     
-}
-
-void vParticle::updateWeightSync(double normval)
-{
-    weight = weight / normval;
 }
 
 /*****************vParticleCircle********************/
@@ -276,39 +290,39 @@ int vParticleCircle::incrementalLikelihood(int vx, int vy, int dt)
     else rdx = dx - 0.5;
     if(dy > 0) rdy = dy + 0.5;
     else rdy = dy - 0.5;
-    
+
     double sqrd = pcb->queryDistance(rdy, rdx) - r;
     //double sqrd = sqrt(pow(dx, 2.0) + pow(dy, 2.0)) - r;
-    
+
     if(sqrd > -inlierParameter && sqrd < inlierParameter) {
-        
+
         int a = pcb->queryBinNumber(rdy, rdx);
         //int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
         if(!angdist[a]) {
             inlierCount++;
             angdist[a] = dt + 1;
         }
-        
+
     } else if(sqrd > -outlierParameter && sqrd < 0) { //-3 < X < -5
-        
+
         int a = pcb->queryBinNumber(rdy, rdx);
         //int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
         if(!negdist[a]) {
             outlierCount++;
             negdist[a] = 1;
         }
-        
+
     }
-    
+
     int score = inlierCount - outlierCount;
     if(score >= likelihood) {
         likelihood = score;
         maxtw = dt;
     }
-    
-    
-    return score;
-    
+
+
+    return inlierCount - outlierCount;
+
 }
 
 void vParticleCircle::initLikelihood()
@@ -358,4 +372,5 @@ int vParticleTemplate::incrementalLikelihood( int vx, int vy, int dt ) {
     
     return score;
 }
+
 
