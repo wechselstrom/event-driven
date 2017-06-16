@@ -18,7 +18,6 @@ build-ubuntu/
 #the pc104 build which we only want on the iCub14
 build-pc104/
 
-*.autosave
 .idea/
 matlab/alogrithms/LK_Template_Tracking_version3a/LucasKanadeAffine.m
 matlab/alogrithms/LK_Template_Tracking_version3a/LucasKanadeInverseAffine.c
@@ -28,7 +27,4 @@ matlab/alogrithms/LK_Template_Tracking_version3a/TTdemo.m
 matlab/alogrithms/LK_Template_Tracking_version3a/TTdemo_packed_movie.mat
 matlab/alogrithms/LK_Template_Tracking_version3a/data.mat
 matlab/alogrithms/LK_Template_Tracking_version3a/license.txt
-matlab/alogrithms/LK_Template_Tracking_version3a/weight1.png
-matlab/alogrithms/LK_Template_Tracking_version3a/weight2.png
-matlab/alogrithms/LK_Template_Tracking_version3a/weight3.png
-matlab/alogrithms/LK_Template_Tracking_version3a/weight4.png
+*.png

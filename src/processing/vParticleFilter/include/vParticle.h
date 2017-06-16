@@ -7,7 +7,7 @@
 using namespace ev;
 
 //TODO make template generation autonomous
-yarp::sig::Matrix generateCircularTemplate( double radius, int thickness, int margin );
+yarp::sig::Matrix generateCircularTemplate( int radius, int thickness, int inflate );
 
 enum ParticleType {
     Circle,

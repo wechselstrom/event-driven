@@ -58,7 +58,7 @@ void vParticleReader::initialise( unsigned int width, unsigned int height, unsig
 
     //initialise the particles
     vParticle* p;
-    yarp::sig::Matrix vTemplate = generateCircularTemplate( 25, 2, 0 );
+    yarp::sig::Matrix vTemplate = generateCircularTemplate( 25, 5, 2);
     indexedlist.clear();
     for(int i = 0; i < nparticles; i++) {
         switch (particleType) {

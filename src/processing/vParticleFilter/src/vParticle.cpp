@@ -122,30 +122,32 @@ double approxatan2(double y, double x) {
 }
 
 
-yarp::sig::Matrix generateCircularTemplate( double radius, int thickness, int margin ) {
-    yarp::sig::Matrix vTemplate( 2 * radius + margin + 1 , 2 * radius + margin + 1 );
+yarp::sig::Matrix generateCircularTemplate( int radius, int thickness, int inflate ) {
+    int templateSize = radius + thickness + inflate;
+    yarp::sig::Matrix vTemplate( 2 * templateSize + 1 , 2 * templateSize + 1 );
     vTemplate.zero();
     for ( double theta = 0; theta < 2 * M_PI ; theta += M_PI/360 ) {
         
-        for ( int i = 0; i < radius; ++i ) {
+        for ( int i = templateSize; i >= 0; --i ) {
             
-            int x = (radius - i) * cos(theta) + margin/2;
-            int y = (radius - i) * sin(theta) + margin/2;
-            if (i < thickness)
-            vTemplate(x + radius  ,y + radius ) = 1;
-            else if (i < 2*thickness)
-                vTemplate(x + radius  ,y + radius ) = 4;
+            int x = (templateSize - i) * cos(theta);
+            int y = (templateSize - i) * sin(theta);
+            if (i < inflate)
+            vTemplate(x + templateSize  ,y + templateSize ) = 4;
+            else if (i < inflate + thickness)
+                vTemplate(x + templateSize  ,y + templateSize ) = 1;
+            else if (i < 2 *inflate +  thickness)
+                vTemplate(x + templateSize  ,y + templateSize ) = 4;
     
         }
-        
     }
     
-//    for (int r = 0; r < vTemplate.rows(); ++r) {
-//        for (int c = 0; c < vTemplate.cols(); ++c) {
-//            std::cout << vTemplate(r, c);
-//        }
-//        std::cout << std::endl;
-//    }
+    for (int r = 0; r < vTemplate.rows(); ++r) {
+        for (int c = 0; c < vTemplate.cols(); ++c) {
+            std::cout << vTemplate(r, c);
+        }
+        std::cout << std::endl;
+    }
     
     return vTemplate;
 }
