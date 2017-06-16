@@ -92,9 +92,9 @@ bool vParticleModule::configure(yarp::os::ResourceFinder &rf)
             std::cout << "Using initial seed location: " << seed->toString() << std::endl;
             particleCallback->setSeed(seed->get(0).asDouble(), seed->get(1).asDouble(), seed->get(2).asDouble());
         }
-//        particleCallback->initialise<vParticleCircle>(width, height, rightParticles,
-//                                                       rate, nRandResample, adaptivesampling,
-//                                                      particleVariance, 1, useroi);
+        particleCallback->initialise(width, height, rightParticles,
+                                                       rate, nRandResample, adaptivesampling,
+                                                      particleVariance, 1, useroi, particleType);
 
         //open the ports
         if(!particleCallback->open(getName(), strict)) {

@@ -122,19 +122,31 @@ double approxatan2(double y, double x) {
 }
 
 
-yarp::sig::Matrix generateCircularTemplate( double radius, int thickness ) {
-    yarp::sig::Matrix vTemplate( 2 * radius + 1 , 2 * radius + 1 );
+yarp::sig::Matrix generateCircularTemplate( double radius, int thickness, int margin ) {
+    yarp::sig::Matrix vTemplate( 2 * radius + margin + 1 , 2 * radius + margin + 1 );
     vTemplate.zero();
     for ( double theta = 0; theta < 2 * M_PI ; theta += M_PI/360 ) {
         
-        for ( int i = 0; i < thickness; ++i ) {
+        for ( int i = 0; i < radius; ++i ) {
             
-            int x = (radius - i) * cos(theta);
-            int y = (radius - i) * sin(theta);
+            int x = (radius - i) * cos(theta) + margin/2;
+            int y = (radius - i) * sin(theta) + margin/2;
+            if (i < thickness)
             vTemplate(x + radius  ,y + radius ) = 1;
+            else if (i < 2*thickness)
+                vTemplate(x + radius  ,y + radius ) = 4;
+    
         }
         
     }
+    
+//    for (int r = 0; r < vTemplate.rows(); ++r) {
+//        for (int c = 0; c < vTemplate.cols(); ++c) {
+//            std::cout << vTemplate(r, c);
+//        }
+//        std::cout << std::endl;
+//    }
+    
     return vTemplate;
 }
 
@@ -348,18 +360,18 @@ void vParticleTemplate::initLikelihood() {
 
 int vParticleTemplate::incrementalLikelihood( int vx, int vy, int dt ) {
     
-    int dx = vx - x;
-    int dy = vy - y;
+    int dx = vx - x + vTemplate.cols()/2;
+    int dy = vy - y + vTemplate.rows()/2;
     
     bool inROI = dx > 0 && dx < vTemplate.cols() && dy > 0 && dy < vTemplate.rows();
     
     if (inROI) {
-        if ( vTemplate( dx, dy ) ) {
+        if ( vTemplate( dx, dy ) == 1 ) {
             if ( !buckets( dx, dy ) ) {
                 inlierCount++;
                 buckets( dx, dy ) = 1;
             }
-        } else {
+        } else if (vTemplate(dx,dy) != 0){
             outlierCount++;
         }
     }

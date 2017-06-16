@@ -80,8 +80,9 @@ bool particleProcessor::threadInit()
     
     double radius = 25;
     int thickness = 4;
-    yarp::sig::Matrix vTemplate = generateCircularTemplate( radius, thickness );
-    
+    int margin = 5;
+    yarp::sig::Matrix vTemplate = generateCircularTemplate( radius, thickness,margin);
+//    yarp::sig::Matrix vTemplate(50,50); vTemplate = 1;
     indexedlist.clear();
     for(int i = 0; i < nparticles; i++) {
         switch (particleType) {

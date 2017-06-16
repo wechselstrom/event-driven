@@ -58,7 +58,7 @@ void vParticleReader::initialise( unsigned int width, unsigned int height, unsig
 
     //initialise the particles
     vParticle* p;
-    yarp::sig::Matrix vTemplate = generateCircularTemplate(25,4);
+    yarp::sig::Matrix vTemplate = generateCircularTemplate( 25, 2, 0 );
     indexedlist.clear();
     for(int i = 0; i < nparticles; i++) {
         switch (particleType) {
@@ -167,9 +167,9 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
 
     yarp::os::Stamp st;
     getEnvelope(st);
-    if(st.getCount() != pstamp.getCount() +1) {
-        std::cout << "Lost Bottle" << std::endl;
-    }
+//    if(st.getCount() != pstamp.getCount() +1) {
+//        std::cout << "Lost Bottle" << std::endl;
+//    }
     pstamp = st;
 
     //create event queue
@@ -306,7 +306,8 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
         }
 
     }
-
+    
+   
     if(scopeOut.getOutputCount()) {
 
         yarp::os::Bottle &sob = scopeOut.prepare();
@@ -335,7 +336,8 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
             if(py < 0 || py >= res.height || px < 0 || px >= res.width) continue;
             //pcol = yarp::sig::PixelBgr(255*indexedlist[i]->getw()/pmax->getw(), 255*indexedlist[i]->getw()/pmax->getw(), 255);
             //image(res.width - px - 1, res.height - py - 1) = yarp::sig::PixelBgr(255, 255, 255);
-            image(px, py) = yarp::sig::PixelBgr(255, 255, 255);
+            int l = indexedlist[i]->getl() * 20;
+            image(px, py) = yarp::sig::PixelBgr(l, l, l);
             //drawcircle(image, indexedlist[i]->getx(), indexedlist[i]->gety(), indexedlist[i]->getr(), indexedlist[i]->getid());
         }
         drawEvents(image, stw, avgtw, false);
