@@ -16,7 +16,7 @@
  */
 
 
-#include "vEgoMotion.h"
+#include "vEgomotionThread.h"
 
 using namespace yarp::os;
 
