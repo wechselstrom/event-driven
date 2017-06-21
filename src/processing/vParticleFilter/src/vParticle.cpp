@@ -16,14 +16,14 @@ double generateGaussianNoise(double mu, double sigma)
     generate = !generate;
     
     if (!generate)
-       return z1 * sigma + mu;
-
+        return z1 * sigma + mu;
+    
     double u1, u2;
     do
-     {
-       u1 = rand() * (1.0 / RAND_MAX);
-       u2 = rand() * (1.0 / RAND_MAX);
-     }
+    {
+        u1 = rand() * (1.0 / RAND_MAX);
+        u2 = rand() * (1.0 / RAND_MAX);
+    }
     while ( u1 <= epsilon );
     
     z0 = sqrt(-2.0 * log(u1)) * cos(two_pi * u2);
@@ -53,26 +53,26 @@ void drawEvents(yarp::sig::ImageOf< yarp::sig::PixelBgr> &image, ev::vQueue &q, 
 
 void drawcircle(yarp::sig::ImageOf<yarp::sig::PixelBgr> &image, int cx, int cy, int cr, int id)
 {
-
+    
     for(int y = -cr; y <= cr; y++) {
         for(int x = -cr; x <= cr; x++) {
             if(fabs(sqrt(pow(x, 2.0) + pow(y, 2.0)) - (double)cr) > 0.8) continue;
             int px = cx + x; int py = cy + y;
             if(py < 0 || py > image.height()-1 || px < 0 || px > image.width()-1) continue;
             switch(id) {
-            case(0): //green
-                image(px, py) = yarp::sig::PixelBgr(0, 255, 0);
-                break;
-            case(1): //blue
-                image(px, py) = yarp::sig::PixelBgr(0, 0, 255);
-                break;
-            case(2): //red
-                image(px, py) = yarp::sig::PixelBgr(255, 0, 0);
-                break;
-            default:
-                image(px, py) = yarp::sig::PixelBgr(255, 255, 0);
-                break;
-
+                case(0): //green
+                    image(px, py) = yarp::sig::PixelBgr(0, 255, 0);
+                    break;
+                case(1): //blue
+                    image(px, py) = yarp::sig::PixelBgr(0, 0, 255);
+                    break;
+                case(2): //red
+                    image(px, py) = yarp::sig::PixelBgr(255, 0, 0);
+                    break;
+                default:
+                    image(px, py) = yarp::sig::PixelBgr(255, 255, 0);
+                    break;
+                
             }
             
         }
@@ -126,29 +126,46 @@ yarp::sig::Matrix generateCircularTemplate( int radius, int thickness, int infla
     int templateSize = radius + thickness + inflate;
     yarp::sig::Matrix vTemplate( 2 * templateSize + 1 , 2 * templateSize + 1 );
     vTemplate.zero();
+    double count = 0;
+    double inflateCount = 0;
     for ( double theta = 0; theta < 2 * M_PI ; theta += M_PI/360 ) {
         
         for ( int i = templateSize; i >= 0; --i ) {
-            
-            int x = (templateSize - i) * cos(theta);
-            int y = (templateSize - i) * sin(theta);
-            if (i < inflate)
-            vTemplate(x + templateSize  ,y + templateSize ) = 4;
-            else if (i < inflate + thickness)
-                vTemplate(x + templateSize  ,y + templateSize ) = 1;
-            else if (i < 2 *inflate +  thickness)
-                vTemplate(x + templateSize  ,y + templateSize ) = 4;
     
+            int x = ( templateSize - i ) * cos( theta ) + templateSize;
+            int y = ( templateSize - i ) * sin( theta ) + templateSize;
+            if ( !vTemplate( x, y ) ) {
+                if ( i < inflate ) {
+                    vTemplate( x, y ) = 4;
+                    inflateCount++;
+                } else if ( i < inflate + thickness ) {
+                    vTemplate( x, y ) = 1;
+                    count++;
+                } else if ( i < 2 * inflate + thickness ) {
+                    vTemplate( x, y ) = 4;
+                    inflateCount++;
+                }
+            }
         }
+        
     }
-    
+    double val = - count / inflateCount;
     for (int r = 0; r < vTemplate.rows(); ++r) {
         for (int c = 0; c < vTemplate.cols(); ++c) {
-            std::cout << vTemplate(r, c);
+            if (vTemplate(r,c) == 4)
+                vTemplate(r,c) = val;
         }
-        std::cout << std::endl;
     }
     
+    double tot = 0;
+    for (int r = 0; r < vTemplate.rows(); ++r) {
+        for (int c = 0; c < vTemplate.cols(); ++c) {
+//            std::cout << vTemplate(r,c);
+            tot += vTemplate(r,c);
+        }
+//        std::cout << std::endl;
+    }
+    std::cout << "tot = " << tot << std::endl;
     return vTemplate;
 }
 
@@ -177,8 +194,8 @@ vParticle::vParticle()
 }
 
 void vParticle::initialiseParameters(int id, double minLikelihood,
-                                     double outlierParam, double inlierParam,
-                                     double variance, int angbuckets)
+        double outlierParam, double inlierParam,
+        double variance, int angbuckets)
 {
     this->id = id;
     this->minlikelihood = minLikelihood;
@@ -239,20 +256,20 @@ void vParticle::predict(unsigned long timestamp)
     double dt = 0;
     if(stamp) dt = timestamp - this->stamp;
     stamp = timestamp;
-
+    
     tw += std::max(dt, 12500.0);
     //tw = std::max(tw, 50000.0);
-
+    
     //double k = 1.0 / sqrt(2.0 * M_PI * variance * variance);
-
+    
     double gx = generateGaussianNoise(0, variance);
     double gy = generateGaussianNoise(0, variance);
     double gr = generateGaussianNoise(0, variance * 0.4);
-
+    
     x += gx;
     y += gy;
     r += gr;
-
+    
     double pr = exp(-(gr*gr) / (2.0 * 0.16 * variance * variance));
     double py = exp(-(gy*gy) / (2.0 * variance * variance));
     double px = exp(-(gx*gx) / (2.0 * variance * variance));
@@ -304,39 +321,39 @@ int vParticleCircle::incrementalLikelihood(int vx, int vy, int dt)
     else rdx = dx - 0.5;
     if(dy > 0) rdy = dy + 0.5;
     else rdy = dy - 0.5;
-
+    
     double sqrd = pcb->queryDistance(rdy, rdx) - r;
     //double sqrd = sqrt(pow(dx, 2.0) + pow(dy, 2.0)) - r;
-
+    
     if(sqrd > -inlierParameter && sqrd < inlierParameter) {
-
+        
         int a = pcb->queryBinNumber(rdy, rdx);
         //int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
         if(!angdist[a]) {
             inlierCount++;
             angdist[a] = dt + 1;
         }
-
+        
     } else if(sqrd > -outlierParameter && sqrd < 0) { //-3 < X < -5
-
+        
         int a = pcb->queryBinNumber(rdy, rdx);
         //int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
         if(!negdist[a]) {
             outlierCount++;
             negdist[a] = 1;
         }
-
+        
     }
-
+    
     int score = inlierCount - outlierCount;
     if(score >= likelihood) {
         likelihood = score;
         maxtw = dt;
     }
-
-
+    
+    
     return inlierCount - outlierCount;
-
+    
 }
 
 void vParticleCircle::initLikelihood()
@@ -358,6 +375,7 @@ void vParticleTemplate::initLikelihood() {
     outlierCount = 0;
     buckets.zero();
     maxtw = 0;
+    score = 0;
 };
 
 int vParticleTemplate::incrementalLikelihood( int vx, int vy, int dt ) {
@@ -366,19 +384,23 @@ int vParticleTemplate::incrementalLikelihood( int vx, int vy, int dt ) {
     int dy = vy - y + vTemplate.rows()/2;
     
     bool inROI = dx > 0 && dx < vTemplate.cols() && dy > 0 && dy < vTemplate.rows();
+//
+//    if (inROI) {
+//        if ( vTemplate( dx, dy ) > 0 ) {
+//            if ( !buckets( dx, dy ) ) {
+//                inlierCount++;
+//                buckets( dx, dy ) = 1;
+//            }
+//        } else if (vTemplate(dx,dy) != 0){
+//            outlierCount++;
+//        }
+//    }
+//
+//    int score = inlierCount - outlierCount;
     
-    if (inROI) {
-        if ( vTemplate( dx, dy ) == 1 ) {
-            if ( !buckets( dx, dy ) ) {
-                inlierCount++;
-                buckets( dx, dy ) = 1;
-            }
-        } else if (vTemplate(dx,dy) != 0){
-            outlierCount++;
-        }
+    if (inROI){
+        score += vTemplate(dx,dy);
     }
-    
-    int score = inlierCount - outlierCount;
     if(score >= likelihood) {
         likelihood = score;
         maxtw = dt;

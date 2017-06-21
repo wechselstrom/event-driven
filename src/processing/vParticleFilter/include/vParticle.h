@@ -114,6 +114,7 @@ class vParticleTemplate : public vParticle
 private:
     yarp::sig::Matrix vTemplate;
     yarp::sig::Matrix buckets;
+    double score;
     
 public:
     

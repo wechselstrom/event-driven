@@ -315,7 +315,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
 
         double dt = q.back()->stamp - q.front()->stamp;
         if(dt < 0) dt += ev::vtsHelper::max_stamp;
-        sob.addDouble(dt);
+//        sob.addDouble(dt);
         sob.addDouble(q.size());
         scopeOut.setEnvelope(st);
         scopeOut.write();
