@@ -39,6 +39,8 @@ vDraw * createDrawer(std::string tag)
         return new blobDraw();
     if(tag == isoInterestDraw::drawtype)
         return new isoInterestDraw();
+    if(tag == predDraw::drawtype)
+        return new predDraw();
     return 0;
 
 }
@@ -401,7 +403,7 @@ void flowDraw::draw(cv::Mat &image, const vQueue &eSet, int vTime)
 
     p_start.x = (int) (p_end.x - 5*sin(theta - M_PI/4));
     p_start.y = (int) (p_end.y - 5*cos(theta - M_PI/4));
-    cv::line(image, p_start, p_end, line_color2, 4, 4);
+    cv::line(image, p_start, p_end, line_color2, 3, 4);
 
 }
 
@@ -732,6 +734,76 @@ void isoInterestDraw::draw(cv::Mat &image, const ev::vQueue &eSet, int vTime)
 
 
     image = isoimage - baseimage;
+
+}
+
+/********************************************************/
+const std::string predDraw::drawtype = "PRED";
+
+std::string predDraw::getDrawType()
+{
+    return predDraw::drawtype;
+}
+
+std::string predDraw::getEventType()
+{
+    return FlowEvent::tag;
+}
+
+void predDraw::draw(cv::Mat &image, const vQueue &eSet, int vTime)
+{
+    if(image.empty()) {
+        image = cv::Mat(Ylimit, Xlimit, CV_8UC3);
+        image.setTo(255);
+    }
+
+    if(eSet.empty()) return;
+    if(checkStagnancy(eSet) > clearThreshold) return;
+
+    cv::Scalar line_color = CV_RGB(255,0,0);
+    cv::Point p_start,p_end;
+
+    vQueue::const_reverse_iterator qi;
+    for(qi = eSet.rbegin(); qi != eSet.rend(); qi++) {
+
+        int dt = eSet.back()->stamp - (*qi)->stamp;
+        if(dt < 0) dt += ev::vtsHelper::max_stamp;
+        if(dt > twindow/4) break;
+
+        auto ofp = is_event<ev::FlowEvent>(*qi);
+
+        int x = ofp->x;
+        int y = ofp->y;
+        float vx = ofp->vx;
+        float vy = ofp->vy;
+
+        if(flip) {
+            x = Xlimit - 1 - x;
+            y = Ylimit - 1 - y;
+            double temp;
+            temp = vx;
+            vx = vy;
+            vy = temp;
+        }
+
+        p_start.x = Xlimit/2;
+        p_start.y = Ylimit/2;
+        double h = 15;
+        double theta = atan2(vy, vx);
+        p_end.x = (int) (p_start.x + h * sin(theta));
+        p_end.y = (int) (p_start.y + h * cos(theta));
+
+        cv::line(image, p_start, p_end, line_color, 1, 4);
+
+        //Draw the tips of the arrow
+        p_start.x = (int) (p_end.x - 5*sin(theta + M_PI/4));
+        p_start.y = (int) (p_end.y - 5*cos(theta + M_PI/4));
+        cv::line(image, p_start, p_end, line_color, 1, 4);
+
+        p_start.x = (int) (p_end.x - 5*sin(theta - M_PI/4));
+        p_start.y = (int) (p_end.y - 5*cos(theta - M_PI/4));
+        cv::line(image, p_start, p_end, line_color, 1, 4);
+    }
 
 }
 
