@@ -58,7 +58,7 @@ void vParticleReader::initialise( unsigned int width, unsigned int height, unsig
 
     //initialise the particles
     vParticle* p;
-    yarp::sig::Matrix vTemplate = generateCircularTemplate( 25, 5, 2);
+    yarp::sig::Matrix vTemplate = generateCircularTemplate( seedr, 4, 5);
     indexedlist.clear();
     for(int i = 0; i < nparticles; i++) {
         switch (particleType) {
@@ -164,6 +164,7 @@ bool vParticleReader::inbounds(vParticle &p)
 
 void vParticleReader::onRead(ev::vBottle &inputBottle)
 {
+    double avgl = 0;
 
     yarp::os::Stamp st;
     getEnvelope(st);
@@ -257,7 +258,6 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
         avgy = 0;
         avgr = 0;
         avgtw = 0;
-
         pmax = indexedlist[0];
         for(int i = 0; i < nparticles; i ++) {
             indexedlist[i]->updateWeightSync(normval);
@@ -271,6 +271,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
             avgy += indexedlist[i]->gety() * indexedlist[i]->getw();
             avgr += indexedlist[i]->getr() * indexedlist[i]->getw();
             avgtw += indexedlist[i]->gettw() * indexedlist[i]->getw();
+            avgl += indexedlist[i]->getl();
         }
 
         //indexedlist[0]->resetStamp(t);
@@ -316,7 +317,8 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
         double dt = q.back()->stamp - q.front()->stamp;
         if(dt < 0) dt += ev::vtsHelper::max_stamp;
 //        sob.addDouble(dt);
-        sob.addDouble(q.size());
+//        sob.addDouble(q.size());
+        sob.addDouble(avgl);
         scopeOut.setEnvelope(st);
         scopeOut.write();
     }

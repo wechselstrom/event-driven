@@ -113,15 +113,11 @@ class vParticleTemplate : public vParticle
 {
 private:
     yarp::sig::Matrix vTemplate;
-    yarp::sig::Matrix buckets;
     double score;
     
 public:
     
-    vParticleTemplate( yarp::sig::Matrix vTemplate)  : vParticle(), vTemplate(vTemplate){
-        buckets.resize(vTemplate.rows(), vTemplate.cols());
-        buckets.zero();
-    };
+    vParticleTemplate( yarp::sig::Matrix vTemplate)  : vParticle(), vTemplate(vTemplate){};
     vParticle* clone() { return new vParticleTemplate(*this);};
     
     void initLikelihood();

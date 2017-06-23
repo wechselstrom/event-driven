@@ -121,53 +121,96 @@ double approxatan2(double y, double x) {
     
 }
 
+double inflateTemplate( yarp::sig::Matrix &vTemplate, int occVal, int size ) {
+    double inflateCount;
+    
+    for (int r = 0; r < vTemplate.rows(); ++r) {
+        for (int c = 0; c < vTemplate.cols(); ++c) {
+            int rTemp, cTemp;
+            bool neighOcc = false;
+            rTemp = r - 1;
+            cTemp = c;
+            if (rTemp > 0)
+                neighOcc |= vTemplate(rTemp,cTemp) == occVal;
+            rTemp = r + 1;
+            cTemp = c;
+            if (rTemp < vTemplate.rows() - 1)
+                neighOcc |= vTemplate(rTemp,cTemp) == occVal;
+            rTemp = r;
+            cTemp = c - 1;
+            if (cTemp > 0)
+                neighOcc |= vTemplate(rTemp,cTemp) == occVal;
+            rTemp = r;
+            cTemp = c + 1;
+            if (cTemp < vTemplate.cols() - 1)
+                neighOcc |= vTemplate(rTemp,cTemp) == occVal;
+            
+            if (neighOcc && !vTemplate(r,c)) {
+                vTemplate( r, c ) = occVal + 1;
+                inflateCount ++;
+            }
+        }
+    }
+    
+    if (size > 1)
+        inflateCount += inflateTemplate( vTemplate, occVal + 1, size - 1 );
+    
+    return inflateCount;
+}
 
 yarp::sig::Matrix generateCircularTemplate( int radius, int thickness, int inflate ) {
     int templateSize = radius + thickness + inflate;
-    yarp::sig::Matrix vTemplate( 2 * templateSize + 1 , 2 * templateSize + 1 );
+    yarp::sig::Matrix vTemplate( 2 * templateSize +1, 2 * templateSize +1);
     vTemplate.zero();
     double count = 0;
-    double inflateCount = 0;
     for ( double theta = 0; theta < 2 * M_PI ; theta += M_PI/360 ) {
         
         for ( int i = templateSize; i >= 0; --i ) {
-    
+            
             int x = ( templateSize - i ) * cos( theta ) + templateSize;
             int y = ( templateSize - i ) * sin( theta ) + templateSize;
             if ( !vTemplate( x, y ) ) {
-                if ( i < inflate ) {
-                    vTemplate( x, y ) = 4;
-                    inflateCount++;
-                } else if ( i < inflate + thickness ) {
+                if (i > inflate && i < inflate + thickness ) {
                     vTemplate( x, y ) = 1;
                     count++;
-                } else if ( i < 2 * inflate + thickness ) {
-                    vTemplate( x, y ) = 4;
-                    inflateCount++;
                 }
             }
         }
         
     }
+    
+    double inflateCount = inflateTemplate( vTemplate, 1, inflate );
     double val = - count / inflateCount;
+    
+//    for (int r = 0; r < vTemplate.rows(); ++r) {
+//        for (int c = 0; c < vTemplate.cols(); ++c) {
+//            std::cout << vTemplate(r, c);
+//        }
+//        std::cout << std::endl;
+//    }
+    
     for (int r = 0; r < vTemplate.rows(); ++r) {
         for (int c = 0; c < vTemplate.cols(); ++c) {
-            if (vTemplate(r,c) == 4)
+            if (vTemplate(r,c) != 1 && vTemplate(r,c) != 0)
                 vTemplate(r,c) = val;
         }
     }
     
-    double tot = 0;
-    for (int r = 0; r < vTemplate.rows(); ++r) {
-        for (int c = 0; c < vTemplate.cols(); ++c) {
-//            std::cout << vTemplate(r,c);
-            tot += vTemplate(r,c);
-        }
-//        std::cout << std::endl;
-    }
-    std::cout << "tot = " << tot << std::endl;
+//    double tot = 0;
+//    for (int r = 0; r < vTemplate.rows(); ++r) {
+//        for (int c = 0; c < vTemplate.cols(); ++c) {
+//            tot += vTemplate(r,c);
+//        }
+//    }
+//    std::cout << "tot = " << tot << std::endl;
+    
+   
+    
     return vTemplate;
 }
+
+
+
 
 /*////////////////////////////////////////////////////////////////////////////*/
 //VPARTICLETRACKER
@@ -268,7 +311,7 @@ void vParticle::predict(unsigned long timestamp)
     
     x += gx;
     y += gy;
-    r += gr;
+//    r += gr;
     
     double pr = exp(-(gr*gr) / (2.0 * 0.16 * variance * variance));
     double py = exp(-(gy*gy) / (2.0 * variance * variance));
@@ -373,7 +416,6 @@ void vParticleTemplate::initLikelihood() {
     likelihood = minlikelihood;
     inlierCount = 0;
     outlierCount = 0;
-    buckets.zero();
     maxtw = 0;
     score = 0;
 };
@@ -384,20 +426,7 @@ int vParticleTemplate::incrementalLikelihood( int vx, int vy, int dt ) {
     int dy = vy - y + vTemplate.rows()/2;
     
     bool inROI = dx > 0 && dx < vTemplate.cols() && dy > 0 && dy < vTemplate.rows();
-//
-//    if (inROI) {
-//        if ( vTemplate( dx, dy ) > 0 ) {
-//            if ( !buckets( dx, dy ) ) {
-//                inlierCount++;
-//                buckets( dx, dy ) = 1;
-//            }
-//        } else if (vTemplate(dx,dy) != 0){
-//            outlierCount++;
-//        }
-//    }
-//
-//    int score = inlierCount - outlierCount;
-    
+
     if (inROI){
         score += vTemplate(dx,dy);
     }

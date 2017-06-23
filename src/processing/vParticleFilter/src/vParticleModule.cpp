@@ -94,7 +94,7 @@ bool vParticleModule::configure(yarp::os::ResourceFinder &rf)
         }
         particleCallback->initialise(width, height, rightParticles,
                                                        rate, nRandResample, adaptivesampling,
-                                                      particleVariance, 1, useroi, particleType);
+                                                      particleVariance, 0, useroi, particleType);
 
         //open the ports
         if(!particleCallback->open(getName(), strict)) {
