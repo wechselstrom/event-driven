@@ -64,8 +64,8 @@ public:
     void initialiseParameters(int id, double minLikelihood, double outlierParam, double inlierParam, double variance, int angbuckets);
     void attachPCB(preComputedBins *pcb) { this->pcb = pcb; }
 
-    void initialiseState(double x, double y, double r, double tw);
-    void randomise(int x, int y, int r, int tw);
+    void initialiseState(double x, double y, double r);
+    void randomise(int x, int y, int r);
 
     void resetStamp(unsigned long int value);
     void resetWeight(double value);
@@ -73,51 +73,42 @@ public:
 
 
     //update
-    void predict(unsigned long int stamp);
+    void predict();
 
     void initLikelihood();
-    inline void incrementalLikelihood(int vx, int vy, int dt)
+
+    inline int incrementalLikelihood(int vx, int vy)
     {
         double dx = vx - x;
         double dy = vy - y;
-//        int rdx, rdy;
-//        if(dx > 0) rdx = dx + 0.5;
-//        else rdx = dx - 0.5;
-//        if(dy > 0) rdy = dy + 0.5;
-//        else rdy = dy - 0.5;
 
-        //double sqrd = pcb->queryDistance(rdy, rdx) - r;
         double sqrd = sqrt(pow(dx, 2.0) + pow(dy, 2.0)) - r;
 
         if(sqrd > -inlierParameter && sqrd < inlierParameter) {
 
-            //int a = pcb->queryBinNumber(rdy, rdx);
             int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
-            if(!angdist[a]) {
-                inlierCount++;
-                angdist[a] = dt + 1;
-            }
+            //if(!angdist[a]) {
+                //likelihood++;
+                angdist[a] = 1;
+                //negdist[a] = 0;
+                return 1;
+            //}
 
         } else if(sqrd > -outlierParameter && sqrd < 0) { //-3 < X < -5
 
-            //int a = pcb->queryBinNumber(rdy, rdx);
             int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
-            if(!negdist[a]) {
-                outlierCount++;
-                negdist[a] = 1;
-            }
+            //if(!negdist[a]) {
+                //likelihood--;
+                angdist[a] = 0;
+                //negdist[a] = 1;
+                return 1;
+            //}
 
         }
-
-        score = inlierCount - outlierCount;
-        if(score >= likelihood) {
-            likelihood = score;
-            maxtw = dt;
-        }
-
-        //return score;
+        return 0;
 
     }
+
     void concludeLikelihood();
 
     void updateWeightSync(double normval);

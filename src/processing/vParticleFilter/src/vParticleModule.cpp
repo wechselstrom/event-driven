@@ -78,10 +78,10 @@ bool vParticleModule::configure(yarp::os::ResourceFinder &rf)
     double particleVariance = rf.check("variance", yarp::os::Value(0.5)).asDouble();
 
     particleCallback = 0;
-    leftThread = 0;
-    rightThread = 0;
+    //leftThread = 0;
+   // rightThread = 0;
 
-    if(!realtime) {
+    //if(!realtime) {
 
         /* USE FULL PROCESS IN CALLBACK */
         particleCallback = new vParticleReader;
@@ -91,61 +91,62 @@ bool vParticleModule::configure(yarp::os::ResourceFinder &rf)
             std::cout << "Using initial seed location: " << seed->toString() << std::endl;
             particleCallback->setSeed(seed->get(0).asDouble(), seed->get(1).asDouble(), seed->get(2).asDouble());
         }
-        particleCallback->initialise(width, height, rightParticles, rate,
+        particleCallback->initialise(width, height, leftParticles, rate,
                                      nRandResample, adaptivesampling,
-                                     particleVariance, 1, useroi);
+                                     particleVariance, 0, useroi);
 
         //open the ports
         if(!particleCallback->open(getName(), strict)) {
             std::cerr << "Could not open required ports" << std::endl;
             return false;
         }
-    } else {
+    //}
+//    else {
 
-        /* USE REAL-TIME THREAD */
-        eventhandler.configure(height, width, 0.15);
+//        /* USE REAL-TIME THREAD */
+//        eventhandler.configure(height, width, 0.15);
 
-        if(leftParticles) {
-            leftThread = new particleProcessor(getName(), height, width, &eventhandler, &outport);
-            leftThread->setComputeOptions(0, nthread, useroi);
-            leftThread->setFilterParameters(leftParticles, nRandResample,
-                                                adaptivesampling, particleVariance);
-            leftThread->setObservationParameters(minlikelihood, inlierParameter,
-                                                     outlierParameter);
-            if(seed && seed->size() == 3) {
-                std::cout << "Using initial seed location: " << seed->toString() << std::endl;
-                leftThread->setSeed(seed->get(0).asDouble(), seed->get(1).asDouble(), seed->get(2).asDouble());
-            }
-            if(!leftThread->start())
-                return false;
-        }
+//        if(leftParticles) {
+//            leftThread = new particleProcessor(getName(), height, width, &eventhandler, &outport);
+//            leftThread->setComputeOptions(0, nthread, useroi);
+//            leftThread->setFilterParameters(leftParticles, nRandResample,
+//                                                adaptivesampling, particleVariance);
+//            leftThread->setObservationParameters(minlikelihood, inlierParameter,
+//                                                     outlierParameter);
+//            if(seed && seed->size() == 3) {
+//                std::cout << "Using initial seed location: " << seed->toString() << std::endl;
+//                leftThread->setSeed(seed->get(0).asDouble(), seed->get(1).asDouble(), seed->get(2).asDouble());
+//            }
+//            if(!leftThread->start())
+//                return false;
+//        }
 
-        if(rightParticles) {
-            rightThread = new particleProcessor(getName(), height, width, &eventhandler, &outport);
-            rightThread->setComputeOptions(1, nthread, useroi);
-            rightThread->setFilterParameters(rightParticles, nRandResample,
-                                                adaptivesampling, particleVariance);
-            rightThread->setObservationParameters(minlikelihood, inlierParameter,
-                                                     outlierParameter);
-            if(seed && seed->size() == 3) {
-                std::cout << "Using initial seed location: " << seed->toString() << std::endl;
-                rightThread->setSeed(seed->get(0).asDouble(), seed->get(1).asDouble(), seed->get(2).asDouble());
-            }
-            if(!rightThread->start())
-                return false;
-        }
+//        if(rightParticles) {
+//            rightThread = new particleProcessor(getName(), height, width, &eventhandler, &outport);
+//            rightThread->setComputeOptions(1, nthread, useroi);
+//            rightThread->setFilterParameters(rightParticles, nRandResample,
+//                                                adaptivesampling, particleVariance);
+//            rightThread->setObservationParameters(minlikelihood, inlierParameter,
+//                                                     outlierParameter);
+//            if(seed && seed->size() == 3) {
+//                std::cout << "Using initial seed location: " << seed->toString() << std::endl;
+//                rightThread->setSeed(seed->get(0).asDouble(), seed->get(1).asDouble(), seed->get(2).asDouble());
+//            }
+//            if(!rightThread->start())
+//                return false;
+//        }
+//
+//        outport.setRate(10);
+//        if(!outport.open(getName() + "/vBottle:o"))
+//            return false;
+//        if(!outport.start())
+//            return false;
+//        if(!eventhandler.open(getName() + "/vBottle:i"))
+//            return false;
+//        if(!eventhandler.start())
+//            return false;
 
-        outport.setRate(10);
-        if(!outport.open(getName() + "/vBottle:o"))
-            return false;
-        if(!outport.start())
-            return false;
-        if(!eventhandler.open(getName() + "/vBottle:i"))
-            return false;
-        if(!eventhandler.start())
-            return false;
-
-    }
+//    }
 
     return true;
 }
@@ -156,8 +157,8 @@ bool vParticleModule::interruptModule()
     if(!particleCallback) outport.stop();
     if(!particleCallback) eventhandler.stop();
     if(particleCallback) particleCallback->interrupt();
-    if(leftThread) leftThread->stop();
-    if(rightThread) rightThread->stop();
+    //if(leftThread) leftThread->stop();
+    //if(rightThread) rightThread->stop();
 
     std::cout << "Interrupt Successful" << std::endl;
     return true;

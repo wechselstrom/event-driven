@@ -387,28 +387,9 @@ void vPartObsThread::run()
 {
 
     for(int i = pStart; i < pEnd; i++) {
-        (*particles)[i].initLikelihood();
-    }
-
-    for(int i = pStart; i < pEnd; i++) {
         for(unsigned int j = 0; j < (*stw).size(); j++) {
-            if((*deltats)[j] < (*particles)[i].gettw()) {
-                auto v = is_event<AE>((*stw)[j]);
-                (*particles)[i].incrementalLikelihood(v->x, v->y, (*deltats)[j]);
-                if((*particles)[i].score < -20) break;
-//                int l = 2 * (*particles)[i].incrementalLikelihood(v->x, v->y, (*deltats)[j]);
-//                if(debugIm) {
-//                    l += 128;
-//                    if(l > 255) l = 255;
-//                    if(l < 0) l = 0;
-//                    (*debugIm)(i*4 + 0, j) = yarp::sig::PixelBgr(l, l, l);
-//                    (*debugIm)(i*4 + 1, j) = yarp::sig::PixelBgr(l, l, l);
-//                    (*debugIm)(i*4 + 2, j) = yarp::sig::PixelBgr(l, l, l);
-//                    (*debugIm)(i*4 + 3, j) = yarp::sig::PixelBgr(l, l, l);
-//                }
-            } else {
-                break;
-            }
+            auto v = is_event<AE>((*stw)[j]);
+            (*particles)[i].incrementalLikelihood(v->x, v->y);
         }
     }
 

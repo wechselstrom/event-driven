@@ -20,11 +20,16 @@ private:
     yarp::os::BufferedPort<ev::vBottle> vBottleOut;
     yarp::os::Bottle weights;
     yarp::os::Stamp pstamp;
+    int vpstamp;
+
+    ev::vQueue stw;
 
     //event reps
     ev::temporalSurface surfaceLeft;
     ev::vtsHelper unwrap;
     preComputedBins pcb;
+
+    int updatedvs;
 
     //particle storage and variables
     //std::priority_queue<vParticle> sortedlist;
@@ -40,6 +45,12 @@ private:
     double seedx;
     double seedy;
     double seedr;
+
+    double tempT;
+    double obsTv;
+    double obsTy;
+    double resTy;
+    double predTy;
 
     int rbound_min;
     int rbound_max;

@@ -155,8 +155,9 @@ void vParticle::initialiseParameters(int id, double minLikelihood,
     this->inlierParameter = inlierParam;
     this->variance = variance;
     this->angbuckets = angbuckets;
-    angdist.resize(angbuckets);
-    negdist.resize(angbuckets);
+    angdist.resize(angbuckets, 0.0);
+    negdist.resize(angbuckets, 1.0);
+    likelihood = 1.0;
 }
 
 vParticle& vParticle::operator=(const vParticle &rhs)
@@ -164,28 +165,36 @@ vParticle& vParticle::operator=(const vParticle &rhs)
     this->x = rhs.x;
     this->y = rhs.y;
     this->r = rhs.r;
-    this->tw = rhs.tw;
     this->weight = rhs.weight;
-    this->stamp = rhs.stamp;
+    this->angdist = rhs.angdist;
+    this->negdist = rhs.negdist;
+    this->likelihood = rhs.likelihood;
+
     return *this;
 }
 
-void vParticle::initialiseState(double x, double y, double r, double tw)
+void vParticle::initialiseState(double x, double y, double r)
 {
     this->x = x;
     this->y = y;
     this->r = r;
-    this->tw = tw;
+
+    for(unsigned int i = 0; i < angbuckets; i++) {
+        angdist[i] = 0;
+        negdist[i] = 1;
+    }
+    likelihood = 1.0;
+    predlike = 1.0;
+    //angdist.resize(angbuckets, 0.0);
+    //negdist.resize(angbuckets, 1.0);
 }
 
-void vParticle::randomise(int x, int y, int r, int tw)
+void vParticle::randomise(int x, int y, int r)
 {
-    initialiseState(rand()%x, rand()%y, rand()%r, rand()%tw);
-}
+    initialiseState(rand()%x, rand()%y, rand()%r);
 
-void vParticle::resetStamp(unsigned long int value)
-{
-    stamp = value;
+    //angdist.zero();
+    //negdist.resize(angbuckets, 1.0);
 }
 
 void vParticle::resetWeight(double value)
@@ -198,117 +207,62 @@ void vParticle::resetRadius(double value)
     this->r = value;
 }
 
-void vParticle::predict(unsigned long timestamp)
+void vParticle::predict()
 {
-    //double dt = 0;
-    //if(stamp) dt = timestamp - this->stamp;
-    //stamp = timestamp;
+    double gx = generateGaussianNoise(0, variance);
+    double gy = generateGaussianNoise(0, variance);
+    double gr = generateGaussianNoise(0, variance * 0.4);
 
-    //tw += std::max(dt, 12500.0);
-    //tw = std::max(tw, 50000.0);
+    //double px = exp((gx * gx) / (-2.0 * variance * variance));
+    //double py = exp((gy * gy) / (-2.0 * variance * variance));
+    //double pr = exp((gr * gr) / (-2.0 * 0.16 * variance * variance));
+    //predlike = px * py * pr;
 
-    //double k = 1.0 / sqrt(2.0 * M_PI * variance * variance);
-    tw += 12500;
-//    double gx = generateGaussianNoise(0, variance);
-//    double gy = generateGaussianNoise(0, variance);
-//    double gr = generateGaussianNoise(0, variance * 0.4);
+    //predlike = fabs(gx) + fabx(gy) + fabs(gr);
 
-//    x += gx;
-//    y += gy;
-//    r += gr;
+    x += gx;
+    y += gy;
+    r += gr;
 
-//    double pr = exp(-(gr*gr) / (2.0 * 0.16 * variance * variance));
-//    double py = exp(-(gy*gy) / (2.0 * variance * variance));
-//    double px = exp(-(gx*gx) / (2.0 * variance * variance));
-//    predlike = px * py * pr;
-
-
-    x = generateGaussianNoise(x, variance);
-    y = generateGaussianNoise(y, variance);
-    r = generateGaussianNoise(r, variance * 0.4);
-
+//    x = generateGaussianNoise(x, variance);
+//    y = generateGaussianNoise(y, variance);
+//    r = generateGaussianNoise(r, variance * 0.4);
 }
-
-void vParticle::initLikelihood()
-{
-    likelihood = minlikelihood;
-    inlierCount = 0;
-    outlierCount = 0;
-    angdist.zero();
-    negdist.zero();
-    maxtw = 0;
-    score = 0;
-}
-
-//int vParticle::incrementalLikelihood(int vx, int vy, int dt)
-//{
-//    double dx = vx - x;
-//    double dy = vy - y;
-////    int rdx, rdy;
-////    if(dx > 0) rdx = dx + 0.5;
-////    else rdx = dx - 0.5;
-////    if(dy > 0) rdy = dy + 0.5;
-////    else rdy = dy - 0.5;
-
-//    //double sqrd = pcb->queryDistance(rdy, rdx) - r;
-//    double sqrd = sqrt(pow(dx, 2.0) + pow(dy, 2.0)) - r;
-
-//    if(sqrd > -inlierParameter && sqrd < inlierParameter) {
-
-//        //int a = pcb->queryBinNumber(rdy, rdx);
-//        int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
-//        if(!angdist[a]) {
-//            inlierCount++;
-//            angdist[a] = dt + 1;
-//        }
-
-//    } else if(sqrd > -outlierParameter && sqrd < 0) { //-3 < X < -5
-
-//        //int a = pcb->queryBinNumber(rdy, rdx);
-//        int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
-//        if(!negdist[a]) {
-//            outlierCount++;
-//            negdist[a] = 1;
-//        }
-
-//    }
-
-//    int score = inlierCount - outlierCount;
-//    if(score >= likelihood) {
-//        likelihood = score;
-//        maxtw = dt;
-//    }
-
-
-//    return inlierCount - outlierCount;
-
-//}
 
 void vParticle::concludeLikelihood()
 {
-    double dtavg = 0;
-    double dtvar = 0;
-    int n = 0;
+//    double dtavg = 0;
+//    double dtvar = 0;
+//    int n = 0;
 
-    for(unsigned int i = 0; i < angdist.size(); i++) {
-        if(angdist[i] == 0 || angdist[i] > maxtw) continue;
-        dtavg += angdist[i];
-        n++;
-    }
-    if(n > minlikelihood) {
-        dtavg /= n;
-        for(unsigned int i = 0; i < angdist.size(); i++) {
-            if(angdist[i] == 0 || angdist[i] > maxtw) continue;
-            dtvar += (dtavg - angdist[i]) * (dtavg - angdist[i]);
-        }
-        dtvar /= n;
-        dtvar = 0.000001 + 1.0 / sqrt(dtvar * 2.0 * M_PI);
-    } else {
-        dtvar = 0.000001;
+//    for(unsigned int i = 0; i < angdist.size(); i++) {
+//        if(angdist[i] == 0 || angdist[i] > maxtw) continue;
+//        dtavg += angdist[i];
+//        n++;
+//    }
+//    if(n > minlikelihood) {
+//        dtavg /= n;
+//        for(unsigned int i = 0; i < angdist.size(); i++) {
+//            if(angdist[i] == 0 || angdist[i] > maxtw) continue;
+//            dtvar += (dtavg - angdist[i]) * (dtavg - angdist[i]);
+//        }
+//        dtvar /= n;
+//        dtvar = 0.000001 + 1.0 / sqrt(dtvar * 2.0 * M_PI);
+//    } else {
+//        dtvar = 0.000001;
+//    }
+
+    likelihood = 1.0;
+    for(int i = 0; i < angbuckets; i++) {
+        angdist[i] *= 0.99;
+        likelihood += angdist[i];
     }
 
-    if(likelihood > minlikelihood) tw = maxtw;
-    weight = likelihood * weight * dtvar;// * predlike;
+    if(likelihood > minlikelihood)
+        weight = likelihood * weight;// * dtvar;// * predlike;
+    else
+        weight = minlikelihood * weight;
+
 
 }
 

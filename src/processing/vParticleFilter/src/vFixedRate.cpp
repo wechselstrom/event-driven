@@ -12,8 +12,8 @@ vParticleReader::vParticleReader()
     pmax.resetWeight(0.0);
     srand(yarp::os::Time::now());
 
-    avgx = 64;
-    avgy = 64;
+    avgx = 60;
+    avgy = 60;
     avgr = 20;
     nparticles = 50;
     pwsum = 1.0;
@@ -27,6 +27,13 @@ vParticleReader::vParticleReader()
 
     rbound_max = 50;
     rbound_min = 10;
+    updatedvs = 0;
+    vpstamp = 0;
+
+    resTy = 0;
+    predTy = 0;
+    obsTy = 0;
+    obsTv = 0;
 
 }
 
@@ -41,12 +48,12 @@ void vParticleReader::initialise(unsigned int width , unsigned int height,
     this->camera = camera;
     this->useroi = useROI;
 
-    surfaceLeft = ev::temporalSurface(width, height);
+    rbound_min = res.width/17;
+    rbound_max = res.width/8;
 
-    rbound_min = res.width/25;
-    rbound_max = res.width/6;
-
-    pcb.configure(res.height, res.width, rbound_max, 128);
+    avgx = res.width / 2.0;
+    avgy = res.height / 2.0;
+    avgr = (rbound_min + rbound_max) / 2.0;
 
     nparticles = nParticles;
     this->nRandomise = 1.0 + nRands;
@@ -56,17 +63,17 @@ void vParticleReader::initialise(unsigned int width , unsigned int height,
     pwsumsq = nparticles * pow(1.0 / nparticles, 2.0);
 
     //initialise the particles
+    std::cout << "Initialising Particles: " << nparticles << std::endl;
     vParticle p;
 
     indexedlist.clear();
     for(int i = 0; i < nparticles; i++) {
-        p.initialiseParameters(i, obsThresh, obsOutlier, obsInlier, pVariance, 128);
-        p.attachPCB(&pcb);
+        p.initialiseParameters(i, obsThresh, obsOutlier, obsInlier, pVariance, 64);
 
         if(seedr)
-            p.initialiseState(seedx, seedy, seedr, 50000);
+            p.initialiseState(seedx, seedy, seedr);
         else
-            p.randomise(res.width, res.height, 30, 50000);
+            p.initialiseState(res.width/2.0, res.height/2.0, (rbound_max + rbound_min)/2.0);
 
         p.resetWeight(1.0/nparticles);
 
@@ -157,32 +164,65 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
     pstamp = st;
 
     //create event queue
+   // tempT = yarp::os::Time::now();
     vQueue q = inputBottle.get<AE>();
-    //q.sort(true);
-
-    ev::vQueue stw;
-    unsigned long int pt = 0;
-    unsigned long int t = 0;
+   // obsTy += yarp::os::Time::now() - tempT;
 
     for(ev::vQueue::iterator qi = q.begin(); qi != q.end(); qi++) {
 
+        auto v = is_event<AE>(*qi);
+        double vdt = v->stamp - vpstamp;
+        if(vdt < 0) vdt += vtsHelper::max_stamp;
+        obsTv += vdt;
+        vpstamp = v->stamp;
+
         if((*qi)->getChannel() != camera) continue;
 
-        surfaceLeft.addEvent(*qi);
+        //if(v->x < avgx - avgr *1.2 || v->x > avgx + avgr * 1.2 || v->y < avgy - avgr*1.2 || v->y > avgy + avgr*1.2) continue;
 
-        t = unwrap((*qi)->stamp);
-        if((int)(t - pt) < rate) continue;
-        pt = t;
+        tempT = yarp::os::Time::now();
+        for(int i = 0; i < nparticles; i++)
+            updatedvs += indexedlist[i].incrementalLikelihood(v->x, v->y);
+        obsTy += yarp::os::Time::now() - tempT;
 
-        //if(!indexedlist[0].needsUpdating(t)) continue;
+        if((double)updatedvs < nparticles * 0.5) continue;
+        updatedvs = 0;
+
+        tempT = yarp::os::Time::now();
+        //NORMALISE
+        double normval = 0.0;
+        for(int i = 0; i < nparticles; i++) {
+            indexedlist[i].concludeLikelihood();
+            normval += indexedlist[i].getw();
+        }
+        for(int i = 0; i < nparticles; i++)
+            indexedlist[i].updateWeightSync(normval);
+
+        //FIND THE AVERAGE POSITION
+        pwsum = 0;
+        pwsumsq = 0;
+        avgx = 0;
+        avgy = 0;
+        avgr = 0;
+
+        for(int i = 0; i < nparticles; i ++) {
+            double w = indexedlist[i].getw();
+            pwsum += w;
+            pwsumsq += pow(w, 2.0);
+            avgx += indexedlist[i].getx() * w;
+            avgy += indexedlist[i].gety() * w;
+            avgr += indexedlist[i].getr() * w;
+
+        }
+        resTy += yarp::os::Time::now() - tempT;
 
         //RESAMPLE
         if(!adaptive || pwsumsq * nparticles > 2.0) {
             std::vector<vParticle> indexedSnap = indexedlist;
             for(int i = 0; i < nparticles; i++) {
-                double rn = this->nRandomise * pwsum * (double)rand() / RAND_MAX;
-                if(rn > pwsum)
-                    indexedlist[i].randomise(res.width, res.height, 30.0, avgtw);
+                double rn = this->nRandomise * (double)rand() / RAND_MAX;
+                if(rn > 1.0)
+                    indexedlist[i].randomise(res.width, res.height, rbound_max);
                 else {
                     double accum = 0.0; int j = 0;
                     for(j = 0; j < nparticles; j++) {
@@ -194,112 +234,73 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
             }
         }
 
+
+        tempT = yarp::os::Time::now();
         //PREDICT
-        unsigned int maxtw = 0;
         for(int i = 0; i < nparticles; i++) {
-            indexedlist[i].predict(t);
+            indexedlist[i].predict();
             if(!inbounds(indexedlist[i])) {
-                indexedlist[i].randomise(res.width, res.height, 30.0, avgtw);
+                indexedlist[i].randomise(res.width, res.height, rbound_max);
             }
-            if(indexedlist[i].gettw() > maxtw)
-                maxtw = indexedlist[i].gettw();
         }
+        predTy += yarp::os::Time::now() - tempT;
 
-        //OBSERVE
-        for(int i = 0; i < nparticles; i++) {
-            indexedlist[i].initLikelihood();
-        }
-
-        stw = surfaceLeft.getSurf_Tlim(maxtw);
-        unsigned int ctime = (*qi)->stamp;
-        for(unsigned int i = 0; i < stw.size(); i++) {
-            //calc dt
-            double dt = ctime - stw[i]->stamp;
-            if(dt < 0) dt += ev::vtsHelper::max_stamp;
-            auto v = is_event<AE>(stw[i]);
-            for(int i = 0; i < nparticles; i++) {
-                if(dt < indexedlist[i].gettw())
-                    indexedlist[i].incrementalLikelihood(v->x, v->y, dt);
-            }
-
-        }
-
-        //NORMALISE
-        double normval = 0.0;
-        for(int i = 0; i < nparticles; i++) {
-            indexedlist[i].concludeLikelihood();
-            normval += indexedlist[i].getw();
-        }
-
-
-        //FIND THE AVERAGE POSITION
-        pwsum = 0;
-        pwsumsq = 0;
-        avgx = 0;
-        avgy = 0;
-        avgr = 0;
-        avgtw = 0;
-
-        pmax = indexedlist[0];
-        for(int i = 0; i < nparticles; i ++) {
-            indexedlist[i].updateWeightSync(normval);
-            if(indexedlist[i].getw() > pmax.getw()) {
-                pmax = indexedlist[i];
-            }
-
-            pwsum += indexedlist[i].getw();
-            pwsumsq += pow(indexedlist[i].getw(), 2.0);
-            avgx += indexedlist[i].getx() * indexedlist[i].getw();
-            avgy += indexedlist[i].gety() * indexedlist[i].getw();
-            avgr += indexedlist[i].getr() * indexedlist[i].getw();
-            avgtw += indexedlist[i].gettw() * indexedlist[i].getw();
-        }
-
-        //indexedlist[0].resetStamp(t);
-
-        if(vBottleOut.getOutputCount()) {
-            ev::vBottle &eventsout = vBottleOut.prepare();
-            eventsout.clear();
-            auto ceg = make_event<GaussianAE>();
-            ceg->stamp = stw.front()->stamp;
-            ceg->setChannel(camera);
-            ceg->x = avgx;
-            ceg->y = avgy;
-            ceg->sigx = avgr;
-            ceg->sigy = avgr;
-            ceg->sigxy = 0;
-            ceg->polarity = 1;
-            eventsout.addEvent(ceg);
-            vBottleOut.setEnvelope(st);
-            vBottleOut.write();
-        }
-
-        if(resultOut.getOutputCount()) {
-            yarp::os::Bottle &trackBottle = resultOut.prepare();
-            trackBottle.clear();
-            resultOut.setEnvelope(st);
-            trackBottle.addInt(t);
-            trackBottle.addDouble(avgx);
-            trackBottle.addDouble(avgy);
-            trackBottle.addDouble(avgr);
-            trackBottle.addDouble(avgtw);
-            resultOut.setEnvelope(st);
-            resultOut.writeStrict();
-        }
 
     }
 
-    if(scopeOut.getOutputCount()) {
-
+    static int delay1 = 0;
+    delay1++;
+    if(scopeOut.getOutputCount() && delay1 > 20) {
+        delay1 = 0;
         yarp::os::Bottle &sob = scopeOut.prepare();
         sob.clear();
 
-        double dt = q.back()->stamp - q.front()->stamp;
-        if(dt < 0) dt += ev::vtsHelper::max_stamp;
-        sob.addDouble(dt);
-        sob.addDouble(q.size());
+        //double dt = q.back()->stamp - q.front()->stamp;
+        //if(dt < 0) dt += ev::vtsHelper::max_stamp;
+        sob.addDouble(obsTy);
+        sob.addDouble(resTy);
+        sob.addDouble(obsTv * vtsHelper::tsscaler);
+        sob.addDouble(predTy);
+        obsTv = 0;
+        obsTy = 0;
+        resTy = 0;
+        predTy = 0;
         scopeOut.setEnvelope(st);
         scopeOut.write();
+    }
+
+    static int delay2 = 0;
+    delay2++;
+    if(vBottleOut.getOutputCount() && delay2 > 20) {
+        delay2 = 0;
+        ev::vBottle &eventsout = vBottleOut.prepare();
+        eventsout.clear();
+        auto ceg = make_event<GaussianAE>();
+        ceg->stamp = q.back()->stamp;
+        ceg->setChannel(camera);
+        ceg->x = avgx;
+        ceg->y = avgy;
+        ceg->sigx = avgr;
+        ceg->sigy = avgr;
+        ceg->sigxy = 0;
+        ceg->polarity = 1;
+        //std::cout << ceg->getContent().toString() << std::endl;
+        eventsout.addEvent(ceg);
+        vBottleOut.setEnvelope(st);
+        vBottleOut.write();
+
+    }
+
+    if(resultOut.getOutputCount()) {
+        yarp::os::Bottle &trackBottle = resultOut.prepare();
+        trackBottle.clear();
+        resultOut.setEnvelope(st);
+        //trackBottle.addInt(t);
+        trackBottle.addDouble(avgx);
+        trackBottle.addDouble(avgy);
+        trackBottle.addDouble(avgr);
+        resultOut.setEnvelope(st);
+        resultOut.writeStrict();
     }
 
 
@@ -315,12 +316,13 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
             int px = indexedlist[i].getx();
 
             if(py < 0 || py >= res.height || px < 0 || px >= res.width) continue;
+
             //pcol = yarp::sig::PixelBgr(255*indexedlist[i].getw()/pmax.getw(), 255*indexedlist[i].getw()/pmax.getw(), 255);
             //image(res.width - px - 1, res.height - py - 1) = yarp::sig::PixelBgr(255, 255, 255);
             image(px, py) = yarp::sig::PixelBgr(255, 255, 255);
             //drawcircle(image, indexedlist[i].getx(), indexedlist[i].gety(), indexedlist[i].getr(), indexedlist[i].getid());
         }
-        drawEvents(image, stw, avgtw, false);
+        //drawEvents(image, stw, avgtw, false);
         //drawcircle(image, res.width - 1 - avgx, res.height - 1 - avgy, avgr, 1);
         drawcircle(image, avgx, avgy, avgr, 1);
         debugOut.setEnvelope(st);

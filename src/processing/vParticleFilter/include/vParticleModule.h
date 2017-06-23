@@ -23,7 +23,7 @@
 #define __V_PARTICLEMODULE__
 
 #include <yarp/os/RFModule.h>
-#include "vRealTime.h"
+//#include "vRealTime.h"
 #include "vFixedRate.h"
 
 
@@ -34,8 +34,8 @@ class vParticleModule : public yarp::os::RFModule
 {
     //the event bottle input and output handler
     vParticleReader *particleCallback;
-    particleProcessor *rightThread;
-    particleProcessor *leftThread;
+   // particleProcessor *rightThread;
+    //particleProcessor *leftThread;
     hSurfThread eventhandler;
     collectorPort outport;
 
