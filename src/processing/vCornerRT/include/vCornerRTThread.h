@@ -48,10 +48,17 @@ private:
 
     ev::collectorPort *outthread;
     yarp::os::Stamp ystamp;
+//    ev::vQueue currentq;
+//    ev::temporalSurface currsurf;
+//    ev::temporalSurface *surfaceleft;
+//    ev::temporalSurface *surfaceright;
+    double cpudelay;
+    int prevstamp;
 
 public:
     vComputeThread(int sobelsize, int windowRad, double sigma, double thresh, unsigned int qlen, ev::collectorPort *outthread);
     void setData(ev::temporalSurface *cSurf, yarp::os::Stamp ystamp);
+//    void setData(ev::vQueue cq, ev::temporalSurface cSurf, yarp::os::Stamp ystamp);
 //    void setData(ev::historicalSurface *cSurf, yarp::os::Stamp ystamp);
     ev::event<ev::LabelledAE> getResponse();
     bool threadInit() { return true; }
@@ -69,6 +76,7 @@ private:
     //data structures
 //    ev::historicalSurface surfaceleft;
 //    ev::historicalSurface surfaceright;
+//    ev::temporalSurface *cSurf;
     ev::temporalSurface *surfaceleft;
     ev::temporalSurface *surfaceright;
 
@@ -100,13 +108,13 @@ private:
     int qlen;
     int temporalsize;
     int windowRad;
-//    int sobelsize;
-//    double sigma;
-//    double thresh;
+    int sobelsize;
+    double sigma;
+    double thresh;
     int nthreads;
 
-//    filters convolution;
-//    bool detectcorner(ev::vQueue patch, int x, int y);
+    filters convolution;
+    bool detectcorner(ev::vQueue patch, int x, int y);
 
 public:
 

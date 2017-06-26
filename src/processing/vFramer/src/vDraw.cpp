@@ -685,7 +685,8 @@ void isoInterestDraw::draw(cv::Mat &image, const ev::vQueue &eSet, int vTime)
     maxdt = std::max(maxdt, dt);
 
     int r = 1;
-    CvScalar c = CV_RGB(255, 0, 0);
+    CvScalar c1 = CV_RGB(255, 0, 0);
+    CvScalar c2 = CV_RGB(0, 255, 255);
     ev::vQueue::const_iterator qi;
     for(qi = eSet.begin(); qi != eSet.end(); qi++) {
         auto cep = is_event<LabelledAE>(*qi);
@@ -710,7 +711,11 @@ void isoInterestDraw::draw(cv::Mat &image, const ev::vQueue &eSet, int vTime)
         }
 
         cv::Point centr(px, py);
-        cv::circle(image, centr, r, c);
+        if(cep->ID == 1)
+            cv::circle(image, centr, r, c1);
+        else
+            cv::circle(image, centr, r, c2);
+
 //        isoimage.at<cv::Vec3b>(py, px) = cv::Vec3b(0, 0, 255);
     }
 

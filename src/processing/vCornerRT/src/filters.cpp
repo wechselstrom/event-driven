@@ -138,6 +138,7 @@ void filters::applysobel(ev::event<AE> evt)
 //            count++;
         }
     }
+
 //    std::cout << count << std::endl;
 }
 

@@ -31,7 +31,7 @@ bool vEgomotionModule::configure(yarp::os::ResourceFinder &rf)
 //            rf.check("strict", yarp::os::Value(true)).asBool();
 
     bool train = rf.check("train", yarp::os::Value(false)).asBool();
-    double threshold = rf.check("thresh", yarp::os::Value(4.0)).asDouble();
+    double threshold = rf.check("thresh", yarp::os::Value(2.5)).asDouble();
 
     //create the thread for reading joint velocities
     encsobserver = new vEncObsThread(moduleName);
@@ -87,7 +87,8 @@ vEgomotionThread::vEgomotionThread(std::string name, bool train, double threshol
     this->train = train;
     this->velobs = velobs;
 
-    std::string folder = "/home/vvasco/dev/libsvm-3.22/";
+//    std::string folder = "/home/vvasco/dev/libsvm-3.22/";
+    std::string folder = "/usr/local/src/robot/event-driven/build/bin/";
     int njoints = 6;
 
     //create smv node that will be our features (encoders velocities)
@@ -266,25 +267,28 @@ void vEgomotionThread::run()
                 pred_meanv = predict_mean(encveltest);
                 pred_covv = predict_cov(encveltest);
 
-                ofp->vx = pred_meanv[0];
-                ofp->vy = pred_meanv[1];
-                outthread.pushevent(ofp, yarpstamp);
+//                ofp->vx = pred_meanv[0];
+//                ofp->vy = pred_meanv[1];
+//                outthread.pushevent(ofp, yarpstamp);
 
                 //compute metric
-//                bool isindependent = detect_independent(ofp, pred_meanv, pred_covv);
+                bool isindependent = detect_independent(ofp, pred_meanv, pred_covv);
 //                if(isindependent) {
-//                    auto inde = make_event<LabelledAE>(ofp);
+                    auto inde = make_event<LabelledAE>(ofp);
 //                    inde->ID = 2;
 //                    outthread.pushevent(inde, yarpstamp);
 //                }
 
-                //                //if it is independent motion, tag the event as independent
-                //                if(isindependent) {
-                //                    inde->ID = 2;
-                //                }
-                //                else
-                //                    //if not, tag it as corner
-                //                    inde->ID = 1;
+                //if it is independent motion, tag the event as independent
+                if(isindependent) {
+                    inde->ID = 2;
+                }
+                else
+                    //if not, tag it as corner
+                    inde->ID = 1;
+
+                outthread.pushevent(inde, yarpstamp);
+
 
                 if(debugPort.getOutputCount()) {
                     yarp::os::Bottle &scorebottleout = debugPort.prepare();
@@ -374,7 +378,7 @@ bool vEgomotionThread::detect_independent(event<FlowEvent> ofe, yarp::sig::Vecto
     //compute mahalanobis distance
     double mahdist = sqrt(a(0, 0)*diff[0] + a(0, 1)*diff[1]);
 
-//    std::cout << mahdist << " " << threshold << std::endl;
+//    std::cout << pred_meanv[0] << " " << pred_meanv[1] << " " << mahdist << " " << threshold << std::endl;
 
 //    if(debugPort.getOutputCount()) {
 //        yarp::os::Bottle &scorebottleout = debugPort.prepare();

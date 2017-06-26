@@ -82,16 +82,16 @@ private:
     double threshold;
 
     //pre-trained models
-//    const char *mu_vx_file = "/usr/local/src/robot/event-driven/build/bin/muvx.model";
-//    const char *mu_vy_file = "/usr/local/src/robot/event-driven/build/bin/muvy.model";
-//    const char *sigma_vx_file = "/usr/local/src/robot/event-driven/build/bin/sigmavx.model";
-//    const char *sigma_vy_file = "/usr/local/src/robot/event-driven/build/bin/sigmavy.model";
-//    const char *sigma_vxvy_file = "/usr/local/src/robot/event-driven/build/bin/sigmavxvy.model";
-    const char *mu_vx_file = "/home/vvasco/dev/libsvm-3.22/muvx.scale.model";
-    const char *mu_vy_file = "/home/vvasco/dev/libsvm-3.22/muvy.scale.model";
-    const char *sigma_vx_file = "/home/vvasco/dev/libsvm-3.22/sigmavx.scale.model";
-    const char *sigma_vy_file = "/home/vvasco/dev/libsvm-3.22/sigmavy.scale.model";
-    const char *sigma_vxvy_file = "/home/vvasco/dev/libsvm-3.22/sigmavxvy.scale.model";
+    const char *mu_vx_file = "/usr/local/src/robot/event-driven/build/bin/muvx.scale.model";
+    const char *mu_vy_file = "/usr/local/src/robot/event-driven/build/bin/muvy.scale.model";
+    const char *sigma_vx_file = "/usr/local/src/robot/event-driven/build/bin/sigmavx.scale.model";
+    const char *sigma_vy_file = "/usr/local/src/robot/event-driven/build/bin/sigmavy.scale.model";
+    const char *sigma_vxvy_file = "/usr/local/src/robot/event-driven/build/bin/sigmavxvy.scale.model";
+//    const char *mu_vx_file = "/home/vvasco/dev/libsvm-3.22/muvx.scale.model";
+//    const char *mu_vy_file = "/home/vvasco/dev/libsvm-3.22/muvy.scale.model";
+//    const char *sigma_vx_file = "/home/vvasco/dev/libsvm-3.22/sigmavx.scale.model";
+//    const char *sigma_vy_file = "/home/vvasco/dev/libsvm-3.22/sigmavy.scale.model";
+//    const char *sigma_vxvy_file = "/home/vvasco/dev/libsvm-3.22/sigmavxvy.scale.model";
     std::ifstream range_file;
     yarp::sig::Vector min_j, max_j, range_j;
 

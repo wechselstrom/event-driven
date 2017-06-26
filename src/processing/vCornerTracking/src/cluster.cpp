@@ -23,7 +23,7 @@ cluster::cluster()
 {
 
     tlast_update = 0.0;
-    this->maxsize = 30; //maxsize;
+    this->maxsize = 15; //maxsize;
     vel.first = 0.0;
     vel.second = 0.0;
     fiterr = 0.0;
@@ -76,9 +76,9 @@ bool cluster::addEvent(ev::event<LabelledAE> evt, double currt)
         //        std::cout << "discarded " << std::endl;
     }
 
-    //remove the first event added
-    if(cluster_.size() > maxsize)
-        cluster_.pop_front();
+//    //remove the first event added
+//    if(cluster_.size() > maxsize)
+//        cluster_.pop_front();
 
     return check;
 

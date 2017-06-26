@@ -62,7 +62,7 @@ std::pair <double, double> clusterPool::update(ev::event<ev::LabelledAE> evt, do
 //            std::cout << "adding evt " << evt->x << " " << evt->y << " to cluster " << clusterID << " " << std::endl;
 //            pool[clusterID].addEvent(evt, currt);
 
-            if(pool[clusterID].addEvent(evt, currt) == true) {
+            if(pool[clusterID].addEvent(evt, currt)) {
                 //start tracking cluster
                 if(pool[clusterID].getClusterSize() > minevts && pool[clusterID].getSpatialDist(evt) > 4.0) {
                     //                std::cout << "start tracking cluster " << clusterID << std::endl;
@@ -103,6 +103,8 @@ std::pair <double, double> clusterPool::updateNew(ev::event<ev::LabelledAE> evt,
     std::pair <double, double> clustervel;
     clustervel.first = 0.0;
     clustervel.second = 0.0;
+    bool added = false;
+
 
     //if it's the first event, we create the first cluster
     if(firstevent) {
@@ -117,10 +119,11 @@ std::pair <double, double> clusterPool::updateNew(ev::event<ev::LabelledAE> evt,
             //if the event is within the triangle add it
             //CHECK IF THIS HAPPENS FOR MORE CLUSTERS
             if(pool[i].isInTriangle(evt, currt)) {
-//                std::cout << "adding evt " << evt->x << " " << evt->y << " to cluster " << i << " " << std::endl;
-                if(pool[i].addEvent(evt, currt) == true) {
+                if(pool[i].addEvent(evt, currt)) {
+                    std::cout << "adding evt " << evt->x << " " << evt->y << " to cluster " << i << " " << std::endl;
                     clusterID = i;
-//                    break;
+                    added = true;
+                    break;
                 }
             }
         }
@@ -129,11 +132,13 @@ std::pair <double, double> clusterPool::updateNew(ev::event<ev::LabelledAE> evt,
 
             //start tracking when there are enough events in the cluster
             //and there the cluster moved enough
-            if(pool[clusterID].getClusterSize() > minevts && pool[clusterID].getSpatialDist(evt) > mindistance) {
-//                std::cout << "start tracking cluster " << clusterID << std::endl;
-                pool[clusterID].fitLine();
-                clustervel.first = pool[clusterID].getVx() * 1000000.0;
-                clustervel.second = pool[clusterID].getVy() * 1000000.0;
+            if(added) {
+                if(pool[clusterID].getClusterSize() > minevts && pool[clusterID].getSpatialDist(evt) > 0.0) {
+                    //                std::cout << "start tracking cluster " << clusterID << std::endl;
+                    pool[clusterID].fitLine();
+                    clustervel.first = pool[clusterID].getVx() * 1000000.0;
+                    clustervel.second = pool[clusterID].getVy() * 1000000.0;
+                }
             }
 
         } else {
@@ -157,7 +162,7 @@ std::pair <double, double> clusterPool::updateNew(ev::event<ev::LabelledAE> evt,
 //        }
     }
 
-//    std::cout << std::endl;
+    std::cout << std::endl;
 
     return clustervel;
 
