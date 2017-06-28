@@ -110,7 +110,7 @@ public:
 
     }
 
-    void concludeLikelihood(double decay);
+    void concludeLikelihood();
 
     void updateWeightSync(double normval);
 

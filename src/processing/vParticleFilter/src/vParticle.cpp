@@ -180,7 +180,7 @@ void vParticle::initialiseState(double x, double y, double r)
     this->y = y;
     this->r = r;
 
-    for(unsigned int i = 0; i < angbuckets; i++) {
+    for(int i = 0; i < angbuckets; i++) {
         angdist[i] = 0;
         negdist[i] = 1;
     }
@@ -215,10 +215,11 @@ void vParticle::predict(double sigma)
     double gy = generateGaussianNoise(0, sigma);
     double gr = generateGaussianNoise(0, sigma);
 
-    //double px = exp((gx * gx) / (-2.0 * variance * variance));
-    //double py = exp((gy * gy) / (-2.0 * variance * variance));
-    //double pr = exp((gr * gr) / (-2.0 * 0.16 * variance * variance));
-    //predlike = px * py * pr;
+    double inSigma2 = -0.5  / (sigma * sigma);
+    double px = exp(gx * gx * inSigma2);
+    double py = exp(gy * gy * inSigma2);
+    double pr = exp(gr * gr * inSigma2);
+    predlike = px * py * pr;
 
     //predlike = fabs(gx) + fabx(gy) + fabs(gr);
 
@@ -231,7 +232,7 @@ void vParticle::predict(double sigma)
 //    r = generateGaussianNoise(r, variance * 0.4);
 }
 
-void vParticle::concludeLikelihood(double decay)
+void vParticle::concludeLikelihood()
 {
 //    double dtavg = 0;
 //    double dtvar = 0;
@@ -257,7 +258,6 @@ void vParticle::concludeLikelihood(double decay)
     nupdates = 0;
     likelihood = 0.0;
     for(int i = 0; i < angbuckets; i++) {
-        angdist[i] *= decay;
         likelihood += angdist[i];
     }
 
@@ -265,6 +265,13 @@ void vParticle::concludeLikelihood(double decay)
         weight = likelihood * weight;// * dtvar;// * predlike;
     else
         weight = minlikelihood * weight;
+
+
+    for(int i = 0; i < angbuckets; i++) {
+        angdist[i] *= predlike;
+    }
+
+
 
 
 }

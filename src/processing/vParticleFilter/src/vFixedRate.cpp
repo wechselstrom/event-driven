@@ -178,7 +178,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
 
         if((*qi)->getChannel() != camera) continue;
 
-        //if(v->x < avgx - avgr *1.2 || v->x > avgx + avgr * 1.2 || v->y < avgy - avgr*1.2 || v->y > avgy + avgr*1.2) continue;
+        //if(v->x < avgx - avgr *2.0 || v->x > avgx + avgr * 2.0 || v->y < avgy - avgr*2.0 || v->y > avgy + avgr*2.0) continue;
 
         tempT = yarp::os::Time::now();
         for(int i = 0; i < nparticles; i++)
@@ -192,7 +192,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
         //NORMALISE
         double normval = 0.0;
         for(int i = 0; i < nparticles; i++) {
-            indexedlist[i].concludeLikelihood(1.0 - updatedvs / 64.0);
+            indexedlist[i].concludeLikelihood();
             normval += indexedlist[i].getw();
         }
         for(int i = 0; i < nparticles; i++)
