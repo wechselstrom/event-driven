@@ -43,22 +43,16 @@ private:
     ev::vQueue patch;
     filters convolution;
     ev::event<ev::AddressEvent> aep;
-
-    bool detectcorner(int x, int y);
-
     ev::collectorPort *outthread;
     yarp::os::Stamp ystamp;
-//    ev::vQueue currentq;
-//    ev::temporalSurface currsurf;
-//    ev::temporalSurface *surfaceleft;
-//    ev::temporalSurface *surfaceright;
-    double cpudelay;
-    int prevstamp;
+    yarp::os::Mutex processing;
+    yarp::os::Mutex dataready;
+
+    bool detectcorner(int x, int y);
 
 public:
     vComputeThread(int sobelsize, int windowRad, double sigma, double thresh, unsigned int qlen, ev::collectorPort *outthread);
     void setData(ev::temporalSurface *cSurf, yarp::os::Stamp ystamp);
-//    void setData(ev::vQueue cq, ev::temporalSurface cSurf, yarp::os::Stamp ystamp);
 //    void setData(ev::historicalSurface *cSurf, yarp::os::Stamp ystamp);
     ev::event<ev::LabelledAE> getResponse();
     bool threadInit() { return true; }
@@ -76,12 +70,8 @@ private:
     //data structures
 //    ev::historicalSurface surfaceleft;
 //    ev::historicalSurface surfaceright;
-//    ev::temporalSurface *cSurf;
     ev::temporalSurface *surfaceleft;
     ev::temporalSurface *surfaceright;
-
-
-    ev::vNoiseFilter spfilter;
 
     //output port for the vBottle with the new events computed by the module
     yarp::os::BufferedPort<ev::vBottle> vBottleOut;
@@ -99,6 +89,7 @@ private:
     double t1;
     double t2;
     yarp::os::Stamp yarpstamp;
+    int k;
 
     //parameters
     unsigned int height;

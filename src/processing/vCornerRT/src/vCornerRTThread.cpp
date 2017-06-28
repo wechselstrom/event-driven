@@ -22,7 +22,6 @@ vCornerThread::vCornerThread(unsigned int height, unsigned int width, std::strin
 //    surfaceright.initialise(height, width);
     surfaceleft  = new temporalSurface(width, height, this->temporalsize);
     surfaceright = new temporalSurface(width, height, this->temporalsize);
-//    cSurf = new temporalSurface(width, height, this->temporalsize);
 
     int gaussiansize = 2*windowRad + 2 - sobelsize;
     convolution.configure(sobelsize, gaussiansize);
@@ -32,16 +31,15 @@ vCornerThread::vCornerThread(unsigned int height, unsigned int width, std::strin
     std::cout << "Using a " << sobelsize << "x" << sobelsize << " filter ";
     std::cout << "and a " << 2*windowRad + 1 << "x" << 2*windowRad + 1 << " spatial window" << std::endl;
 
-//    spfilter.initialise(width, height, 100000, 1);
-
-//    for(int i = 0; i < nthreads; i ++) {
-//        computeThreads.push_back(new vComputeThread(sobelsize, windowRad, sigma, thresh, qlen, &outthread));
-//    }
-//    std::cout << "Using " << nthreads << " threads for computation " << std::endl;
+    for(int i = 0; i < nthreads; i ++) {
+        computeThreads.push_back(new vComputeThread(sobelsize, windowRad, sigma, thresh, qlen, &outthread));
+    }
+    std::cout << "Using " << nthreads << " threads for computation " << std::endl;
 
     this->cpudelay = 0.005;
     this->prevstamp = 0;
     this->t1 = this->t2 = 0.0; // yarp::os::Time::now();
+    this->k = 0;
 
 }
 
@@ -86,7 +84,6 @@ void vCornerThread::onStop()
 
     delete surfaceleft;
     delete surfaceright;
-//    delete cSurf;
 }
 
 
@@ -157,16 +154,125 @@ void vCornerThread::onStop()
 
 //}
 
+//void vCornerThread::run()
+//{
+////    double timeInit;
+////    double stampInit;
+////    bool stampChecked = false;
+
+//    //    ev::temporalSurface *cSurf = 0;
+//    while(true) {
+
+//        // double t3 = yarp::os::Time::now();
+
+//        ev::vQueue *q = 0;
+//        while(!q && !isStopping()) {
+//            q = allocatorCallback.getNextQ(yarpstamp);
+//        }
+//        if(isStopping()) break;
+
+//        // cpudelay -= yarp::os::Time::now() - t3;
+
+//        int countProcessed = 0;
+//        ev::vQueue patch;
+//        for(ev::vQueue::iterator qi = q->begin(); qi != q->end(); qi++) {
+
+//            auto ae = ev::is_event<ev::AE>(*qi);
+//            double dt = ae->stamp - prevstamp;
+
+////            if (!stampChecked){
+////                stampInit = ae->stamp * vtsHelper::tsscaler;
+////                timeInit = yarp::os::Time::now();
+////                stampChecked = true;
+////            }
+////            if(dt < 0.0) stampInit -= vtsHelper::max_stamp * vtsHelper::tsscaler;
+
+//            if(dt < 0.0) dt += vtsHelper::max_stamp;
+//            cpudelay -= dt * vtsHelper::tsscaler;
+//            prevstamp = ae->stamp;
+
+//            //            //we need to filter the input as we will less likely process noise
+//            //            if(!spfilter.check(ae->x, ae->y, ae->polarity, ae->channel, ae->stamp))
+//            //                continue;
+
+//            //            ev::historicalSurface *cSurf;
+//            ev::temporalSurface *cSurf;
+//            if(ae->getChannel() == 0)
+//                cSurf = surfaceleft;
+//            //                cSurf = &surfaceleft;
+//            else
+//                cSurf = surfaceright;
+//            //                cSurf = &surfaceright;
+//            //            cSurf->addEvent(*qi);
+//            cSurf->fastAddEvent(*qi);
+
+//            if(cpudelay < 0.0) cpudelay = 0.0;
+
+//            if(cpudelay <= 0.001) { //0.1 0.000001
+//                //                if(t1 == 0.0)
+//                t1 = yarp::os::Time::now();
+////                //we look for a free thread
+////                //                std::cout << "processing " << std::endl;
+////                for(int k = 0; k < nthreads; k++) {
+////                    if(!computeThreads[k]->isRunning()) {
+////                        //                        t1 = yarp::os::Time::now();
+////                        //vQueue subsurf = cSurf->getSurfaceN(0, qlen, windowRad, ae->x, ae->y);
+////                        //                        computeThreads[k]->setData(cSurf->getSurfaceN(0, 5, windowRad, ae->x, ae->y), yarpstamp);
+////                        computeThreads[k]->setData(cSurf, yarpstamp);
+////                        computeThreads[k]->start();
+//////                        std::cout << k << std::endl;
+////                        countProcessed++;
+////                        break;
+////                    }
+////                }
+////                //                if(!processing) std::cout << ".";
+
+//                patch.clear();
+//                cSurf->getSurf(patch, windowRad);
+//                if(detectcorner(patch, ae->x, ae->y)) {
+//                    auto ce = ev::make_event<LabelledAE>(ae);
+//                    ce->ID = 1;
+//                    outthread.pushevent(ce, yarpstamp);
+//                }
+//                countProcessed++;
+
+////                std::cout << yarp::os::Time::now() - t1 << std::endl;
+
+//                //time it took to process
+//                //                cpudelay = 0.0;
+//                cpudelay += yarp::os::Time::now() - t1;
+//                //                t1 = yarp::os::Time::now();
+
+//            }
+
+//        }
+
+//        //        std::cout << yarp::os::Time::now() - timeInit << " " <<prevstamp * vtsHelper::tsscaler - stampInit << " " << (yarp::os::Time::now() - timeInit) - (prevstamp * vtsHelper::tsscaler - stampInit) << std::endl;
+
+//        //        std::cout << q->size() << " " << countProcessed << " " << (double)countProcessed/q->size() << std::endl;
+
+//        //std::cout << std::endl;
+
+//        if(debugPort.getOutputCount()) {
+//            yarp::os::Bottle &scorebottleout = debugPort.prepare();
+//            scorebottleout.clear();
+////            scorebottleout.addDouble((yarp::os::Time::now() - timeInit) - (prevstamp * vtsHelper::tsscaler - stampInit));
+//            scorebottleout.addDouble((double)countProcessed/q->size());
+////            scorebottleout.addDouble(cpudelay);
+//            //            scorebottleout.addInt(evtcnt);
+//            debugPort.write();
+//        }
+
+//        allocatorCallback.scrapQ();
+//        //        std::cout << allocatorCallback.scrapQ() << std::endl;
+
+//    }
+
+//}
+
 void vCornerThread::run()
 {
-//    double timeInit;
-//    double stampInit;
-//    bool stampChecked = false;
-
-    //    ev::temporalSurface *cSurf = 0;
     while(true) {
-
-        // double t3 = yarp::os::Time::now();
 
         ev::vQueue *q = 0;
         while(!q && !isStopping()) {
@@ -174,100 +280,47 @@ void vCornerThread::run()
         }
         if(isStopping()) break;
 
-        // cpudelay -= yarp::os::Time::now() - t3;
-
         int countProcessed = 0;
-        ev::vQueue patch;
         for(ev::vQueue::iterator qi = q->begin(); qi != q->end(); qi++) {
 
             auto ae = ev::is_event<ev::AE>(*qi);
             double dt = ae->stamp - prevstamp;
-
-//            if (!stampChecked){
-//                stampInit = ae->stamp * vtsHelper::tsscaler;
-//                timeInit = yarp::os::Time::now();
-//                stampChecked = true;
-//            }
-//            if(dt < 0.0) stampInit -= vtsHelper::max_stamp * vtsHelper::tsscaler;
-
             if(dt < 0.0) dt += vtsHelper::max_stamp;
             cpudelay -= dt * vtsHelper::tsscaler;
             prevstamp = ae->stamp;
 
-            //            //we need to filter the input as we will less likely process noise
-            //            if(!spfilter.check(ae->x, ae->y, ae->polarity, ae->channel, ae->stamp))
-            //                continue;
-
-            //            ev::historicalSurface *cSurf;
             ev::temporalSurface *cSurf;
             if(ae->getChannel() == 0)
                 cSurf = surfaceleft;
-            //                cSurf = &surfaceleft;
             else
                 cSurf = surfaceright;
-            //                cSurf = &surfaceright;
-            //            cSurf->addEvent(*qi);
             cSurf->fastAddEvent(*qi);
 
             if(cpudelay < 0.0) cpudelay = 0.0;
 
-            if(cpudelay <= 0.001) { //0.1 0.000001
-                //                if(t1 == 0.0)
+            if(cpudelay <= 0.1) { //0.1
                 t1 = yarp::os::Time::now();
-//                //we look for a free thread
-//                //                std::cout << "processing " << std::endl;
-//                for(int k = 0; k < nthreads; k++) {
-//                    if(!computeThreads[k]->isRunning()) {
-//                        //                        t1 = yarp::os::Time::now();
-//                        //vQueue subsurf = cSurf->getSurfaceN(0, qlen, windowRad, ae->x, ae->y);
-//                        //                        computeThreads[k]->setData(cSurf->getSurfaceN(0, 5, windowRad, ae->x, ae->y), yarpstamp);
-//                        computeThreads[k]->setData(cSurf, yarpstamp);
-//                        computeThreads[k]->start();
-////                        std::cout << k << std::endl;
-//                        countProcessed++;
-//                        break;
-//                    }
-//                }
-//                //                if(!processing) std::cout << ".";
 
-                patch.clear();
-                cSurf->getSurf(patch, windowRad);
-                if(detectcorner(patch, ae->x, ae->y)) {
-                    auto ce = ev::make_event<LabelledAE>(ae);
-                    ce->ID = 1;
-                    outthread.pushevent(ce, yarpstamp);
-                }
-                countProcessed++;
+                computeThreads[k]->setData(cSurf, yarpstamp);
+                computeThreads[k]->run();
+                k++;
 
-//                std::cout << yarp::os::Time::now() - t1 << std::endl;
+                if(k == nthreads) k = 0;
 
                 //time it took to process
-                //                cpudelay = 0.0;
                 cpudelay += yarp::os::Time::now() - t1;
-                //                t1 = yarp::os::Time::now();
-
             }
-
         }
-
-        //        std::cout << yarp::os::Time::now() - timeInit << " " <<prevstamp * vtsHelper::tsscaler - stampInit << " " << (yarp::os::Time::now() - timeInit) - (prevstamp * vtsHelper::tsscaler - stampInit) << std::endl;
-
-        //        std::cout << q->size() << " " << countProcessed << " " << (double)countProcessed/q->size() << std::endl;
-
-        //std::cout << std::endl;
 
         if(debugPort.getOutputCount()) {
             yarp::os::Bottle &scorebottleout = debugPort.prepare();
             scorebottleout.clear();
-//            scorebottleout.addDouble((yarp::os::Time::now() - timeInit) - (prevstamp * vtsHelper::tsscaler - stampInit));
-            scorebottleout.addDouble((double)countProcessed/q->size());
-//            scorebottleout.addDouble(cpudelay);
-            //            scorebottleout.addInt(evtcnt);
+//            scorebottleout.addDouble((double)countProcessed/q->size());
+            scorebottleout.addDouble(cpudelay);
             debugPort.write();
         }
 
         allocatorCallback.scrapQ();
-        //        std::cout << allocatorCallback.scrapQ() << std::endl;
 
     }
 
@@ -316,82 +369,71 @@ vComputeThread::vComputeThread(int sobelsize, int windowRad, double sigma, doubl
     convolution.setGaussianFilter(sigma);
     this->outthread = outthread;
 
-//    surfaceleft  = new temporalSurface(304, 240, 0.1/ev::vtsHelper::tsscaler);
-//    surfaceright = new temporalSurface(304, 240, 0.1/ev::vtsHelper::tsscaler);
+    dataready.lock();
+
 }
 
-void vComputeThread::setData(temporalSurface *cSurf, yarp::os::Stamp ystamp)
-//void vComputeThread::setData(historicalSurface *cSurf, yarp::os::Stamp ystamp)
-{
+//void vComputeThread::setData(temporalSurface *cSurf, yarp::os::Stamp ystamp)
+////void vComputeThread::setData(historicalSurface *cSurf, yarp::os::Stamp ystamp)
+//{
+////    patch.clear();
+////    cSurf->getSurfaceN(patch, 0, qlen, windowRad);
+
 //    patch.clear();
-//    cSurf->getSurfaceN(patch, 0, qlen, windowRad);
+////    patch = cSurf->getSurf(windowRad); // cSurf->getSurf_Clim(qlen, windowRad);
+//    cSurf->getSurf(patch, windowRad);
+//    aep = is_event<AE>(cSurf->getMostRecent());
+//    this->ystamp = ystamp;
+//}
+
+//void vComputeThread::run()
+//{
+
+////    std::cout << "thread " << this->getKey() << std::endl;
+////    yarp::os::Time::delay(5.0);
+
+//    //    yarp::os::Time::delay(0.1);
+////    double t1 = yarp::os::Time::now();
+//    if(patch.size() == 0) return;
+
+////    auto aep = is_event<AE>(patch.front());
+//    if(detectcorner(aep->x, aep->y)) {
+//        auto ce = make_event<LabelledAE>(aep);
+//        ce->ID = 1;
+//        outthread->pushevent(ce, ystamp);
+//    }
+////    std::cout << yarp::os::Time::now() - t1 << std::endl;
+
+//}
+
+void vComputeThread::setData(temporalSurface *cSurf, yarp::os::Stamp ystamp)
+{
+    processing.lock();
 
     patch.clear();
-//    patch = cSurf->getSurf(windowRad); // cSurf->getSurf_Clim(qlen, windowRad);
     cSurf->getSurf(patch, windowRad);
     aep = is_event<AE>(cSurf->getMostRecent());
     this->ystamp = ystamp;
-}
 
-//void vComputeThread::setData(ev::vQueue cq, ev::temporalSurface cSurf, yarp::os::Stamp ystamp)
-//{
-//    this->ystamp = ystamp;
-//    this->currentq = cq;
-//    this->currsurf = cSurf;
-//    this->cpudelay = 0.005;
-//    this->prevstamp = 0;
-//}
+    processing.unlock();
+    dataready.unlock();
+}
 
 void vComputeThread::run()
 {
+    while(true) {
+        dataready.lock();
+        processing.lock();
+        if(patch.size() == 0) return;
 
-//    std::cout << "thread " << this->getKey() << std::endl;
-//    yarp::os::Time::delay(5.0);
-
-    //    yarp::os::Time::delay(0.1);
-//    double t1 = yarp::os::Time::now();
-    if(patch.size() == 0) return;
-
-//    auto aep = is_event<AE>(patch.front());
-    if(detectcorner(aep->x, aep->y)) {
-        auto ce = make_event<LabelledAE>(aep);
-        ce->ID = 1;
-        outthread->pushevent(ce, ystamp);
+//        std::cout << aep->x << " " << aep->stamp << std::endl;
+        if(detectcorner(aep->x, aep->y)) {
+            auto ce = make_event<LabelledAE>(aep);
+            ce->ID = 1;
+            outthread->pushevent(ce, ystamp);
+        }
+        processing.unlock();
     }
-//    std::cout << yarp::os::Time::now() - t1 << std::endl;
-
-//    for(ev::vQueue::iterator qi = currentq.begin(); qi != currentq.end(); qi++) {
-//        auto ae = ev::is_event<ev::AE>(*qi);
-////        double dt = ae->stamp - prevstamp;
-
-////        if(dt < 0.0) dt += vtsHelper::max_stamp;
-////        cpudelay -= dt * vtsHelper::tsscaler;
-////        prevstamp = ae->stamp;
-
-////        if(ae->getChannel() == 0)
-////            currsurf = surfaceleft;
-////        else
-////            currsurf = surfaceright;
-//        currsurf.fastAddEvent(*qi);
-////        std::cout << ae->stamp << std::endl;
-////        std::cout << cSurf->getEventCount() << std::endl;
-
-////        if(cpudelay < 0.0) cpudelay = 0.0;
-
-////        if(cpudelay <= 0.1) {
-////            double t1 = yarp::os::Time::now();
-//            patch.clear();
-//            currsurf.getSurf(patch, windowRad);
-//            if(detectcorner(ae->x, ae->y)) {
-//                auto ce = ev::make_event<LabelledAE>(ae);
-//                ce->ID = 1;
-//                outthread->pushevent(ce, ystamp);
-//            }
-////            cpudelay += yarp::os::Time::now() - t1;
-////        }
-
-//    }
-
 
 }
 
@@ -411,6 +453,8 @@ bool vComputeThread::detectcorner(int x, int y)
     }
     convolution.applygaussian();
     double score = convolution.getScore();
+
+    std::cout << score << std::endl;
 
     //reset responses
     convolution.reset();
