@@ -41,6 +41,7 @@ private:
     double maxtw;
     yarp::sig::Vector angdist;
     yarp::sig::Vector negdist;
+    int nupdates;
 
     //state and weight
     double x;
@@ -73,7 +74,7 @@ public:
 
 
     //update
-    void predict();
+    void predict(double sigma = 0);
 
     void initLikelihood();
 
@@ -87,29 +88,29 @@ public:
         if(sqrd > -inlierParameter && sqrd < inlierParameter) {
 
             int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
-            //if(!angdist[a]) {
+            if(angdist[a] != 1) {
                 //likelihood++;
                 angdist[a] = 1;
                 //negdist[a] = 0;
-                return 1;
-            //}
+                nupdates++;
+            }
 
         } else if(sqrd > -outlierParameter && sqrd < 0) { //-3 < X < -5
 
             int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
-            //if(!negdist[a]) {
+            if(angdist[a]) {
                 //likelihood--;
                 angdist[a] = 0;
                 //negdist[a] = 1;
-                return 1;
-            //}
+                nupdates++;
+            }
 
         }
-        return 0;
+        return nupdates;
 
     }
 
-    void concludeLikelihood();
+    void concludeLikelihood(double decay);
 
     void updateWeightSync(double normval);
 

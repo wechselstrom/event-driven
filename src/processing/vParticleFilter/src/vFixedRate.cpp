@@ -182,17 +182,17 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
 
         tempT = yarp::os::Time::now();
         for(int i = 0; i < nparticles; i++)
-            updatedvs += indexedlist[i].incrementalLikelihood(v->x, v->y);
+            updatedvs = std::max(indexedlist[i].incrementalLikelihood(v->x, v->y), updatedvs);
         obsTy += yarp::os::Time::now() - tempT;
 
-        if((double)updatedvs < nparticles * 0.5) continue;
-        updatedvs = 0;
+        if((double)updatedvs < 16) continue;
+
 
         tempT = yarp::os::Time::now();
         //NORMALISE
         double normval = 0.0;
         for(int i = 0; i < nparticles; i++) {
-            indexedlist[i].concludeLikelihood();
+            indexedlist[i].concludeLikelihood(1.0 - updatedvs / 64.0);
             normval += indexedlist[i].getw();
         }
         for(int i = 0; i < nparticles; i++)
@@ -238,28 +238,28 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
         tempT = yarp::os::Time::now();
         //PREDICT
         for(int i = 0; i < nparticles; i++) {
-            indexedlist[i].predict();
+            indexedlist[i].predict(updatedvs / 16.0);
             if(!inbounds(indexedlist[i])) {
                 indexedlist[i].randomise(res.width, res.height, rbound_max);
             }
         }
         predTy += yarp::os::Time::now() - tempT;
 
-
+        updatedvs = 0;
     }
 
     static int delay1 = 0;
     delay1++;
-    if(scopeOut.getOutputCount() && delay1 > 20) {
+    if(scopeOut.getOutputCount() && delay1 > 5) {
         delay1 = 0;
         yarp::os::Bottle &sob = scopeOut.prepare();
         sob.clear();
 
         //double dt = q.back()->stamp - q.front()->stamp;
         //if(dt < 0) dt += ev::vtsHelper::max_stamp;
+        sob.addDouble(obsTv * vtsHelper::tsscaler);
         sob.addDouble(obsTy);
         sob.addDouble(resTy);
-        sob.addDouble(obsTv * vtsHelper::tsscaler);
         sob.addDouble(predTy);
         obsTv = 0;
         obsTy = 0;
@@ -271,7 +271,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
 
     static int delay2 = 0;
     delay2++;
-    if(vBottleOut.getOutputCount() && delay2 > 20) {
+    if(vBottleOut.getOutputCount() && delay2 > 5) {
         delay2 = 0;
         ev::vBottle &eventsout = vBottleOut.prepare();
         eventsout.clear();

@@ -143,6 +143,7 @@ vParticle::vParticle()
     angbuckets = 128;
     angdist.resize(angbuckets);
     negdist.resize(angbuckets);
+    nupdates = 0;
 }
 
 void vParticle::initialiseParameters(int id, double minLikelihood,
@@ -207,11 +208,12 @@ void vParticle::resetRadius(double value)
     this->r = value;
 }
 
-void vParticle::predict()
+void vParticle::predict(double sigma)
 {
-    double gx = generateGaussianNoise(0, variance);
-    double gy = generateGaussianNoise(0, variance);
-    double gr = generateGaussianNoise(0, variance * 0.4);
+    if(!sigma) sigma = variance;
+    double gx = generateGaussianNoise(0, sigma);
+    double gy = generateGaussianNoise(0, sigma);
+    double gr = generateGaussianNoise(0, sigma);
 
     //double px = exp((gx * gx) / (-2.0 * variance * variance));
     //double py = exp((gy * gy) / (-2.0 * variance * variance));
@@ -229,7 +231,7 @@ void vParticle::predict()
 //    r = generateGaussianNoise(r, variance * 0.4);
 }
 
-void vParticle::concludeLikelihood()
+void vParticle::concludeLikelihood(double decay)
 {
 //    double dtavg = 0;
 //    double dtvar = 0;
@@ -252,9 +254,10 @@ void vParticle::concludeLikelihood()
 //        dtvar = 0.000001;
 //    }
 
-    likelihood = 1.0;
+    nupdates = 0;
+    likelihood = 0.0;
     for(int i = 0; i < angbuckets; i++) {
-        angdist[i] *= 0.99;
+        angdist[i] *= decay;
         likelihood += angdist[i];
     }
 
