@@ -229,7 +229,7 @@ void vParticle::predict(double sigma)
 //    predlike = px * py * pr;
 
     //predlike = fabs(gx) + fabx(gy) + fabs(gr);
-    predlike = exp((gx *gx + gy*gy + gr*gr) * -0.5 * 100);
+    predlike = exp((gx *gx + gy*gy + gr*gr) * -0.5 * 0.005);
     //predlike = 1.0 - sqrt(gx*gx + gy*gy + gr*gr) / 304;
 
     x += gx;
@@ -278,7 +278,7 @@ void vParticle::concludeLikelihood()
 
 
     for(int i = 0; i < angbuckets; i++) {
-        angdist[i] *= predlike;
+        angdist[i] *= 0.99;
     }
     //negdist.resize(angbuckets, 0.0);
 
