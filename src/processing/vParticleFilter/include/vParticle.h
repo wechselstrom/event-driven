@@ -88,17 +88,18 @@ public:
         if(sqrd > -inlierParameter && sqrd < inlierParameter) {
 
             int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
-            if(angdist[a] != 1) {
+            if(angdist[a] < 1.0) {
                 //likelihood++;
                 angdist[a] = 1;
                 //negdist[a] = 0;
                 nupdates++;
             }
 
-        } else if(sqrd > -outlierParameter && sqrd < 0) { //-3 < X < -5
+        //} else if(sqrd > -outlierParameter && sqrd < 0) { //-3 < X < -5
+        } else if(sqrd < 0) { //-3 < X < -5
 
             int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
-            if(angdist[a]) {
+            if(angdist[a] > 0.0) {
                 //likelihood--;
                 angdist[a] = 0;
                 //negdist[a] = 1;

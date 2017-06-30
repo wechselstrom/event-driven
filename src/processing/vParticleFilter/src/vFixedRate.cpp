@@ -81,7 +81,6 @@ void vParticleReader::initialise(unsigned int width , unsigned int height,
     }
 
 
-
 }
 
 /******************************************************************************/
@@ -185,7 +184,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
             updatedvs = std::max(indexedlist[i].incrementalLikelihood(v->x, v->y), updatedvs);
         obsTy += yarp::os::Time::now() - tempT;
 
-        if((double)updatedvs < 16) continue;
+        if((double)updatedvs < 4) continue;
 
 
         tempT = yarp::os::Time::now();
@@ -220,6 +219,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
         if(!adaptive || pwsumsq * nparticles > 2.0) {
             std::vector<vParticle> indexedSnap = indexedlist;
             for(int i = 0; i < nparticles; i++) {
+                //if(indexedlist[i].getw() > 0.5 / nparticles) continue;
                 double rn = this->nRandomise * (double)rand() / RAND_MAX;
                 if(rn > 1.0)
                     indexedlist[i].randomise(res.width, res.height, rbound_max);

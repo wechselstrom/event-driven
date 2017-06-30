@@ -157,7 +157,7 @@ void vParticle::initialiseParameters(int id, double minLikelihood,
     this->variance = variance;
     this->angbuckets = angbuckets;
     angdist.resize(angbuckets, 0.0);
-    negdist.resize(angbuckets, 1.0);
+    negdist.resize(angbuckets, 0.0);
     likelihood = 1.0;
 }
 
@@ -167,9 +167,16 @@ vParticle& vParticle::operator=(const vParticle &rhs)
     this->y = rhs.y;
     this->r = rhs.r;
     this->weight = rhs.weight;
-    this->angdist = rhs.angdist;
-    this->negdist = rhs.negdist;
-    this->likelihood = rhs.likelihood;
+    //this->angdist = rhs.angdist;
+    //negdist.resize(angbuckets, 0.0);
+    double lt = rhs.likelihood / angbuckets;
+    angdist.resize(angbuckets, lt);
+    //for(unsigned int i = 0; i < angbuckets; i++)
+    //    angdist[i] = rhs.likelihood / angbuckets;
+
+    //this->angdist.zero();
+    //this->negdist = rhs.negdist;
+    //this->likelihood = rhs.likelihood;
 
     return *this;
 }
@@ -182,7 +189,7 @@ void vParticle::initialiseState(double x, double y, double r)
 
     for(int i = 0; i < angbuckets; i++) {
         angdist[i] = 0;
-        negdist[i] = 1;
+        negdist[i] = 0;
     }
     likelihood = 1.0;
     predlike = 1.0;
@@ -215,13 +222,15 @@ void vParticle::predict(double sigma)
     double gy = generateGaussianNoise(0, sigma);
     double gr = generateGaussianNoise(0, sigma);
 
-    double inSigma2 = -0.5  / (sigma * sigma);
-    double px = exp(gx * gx * inSigma2);
-    double py = exp(gy * gy * inSigma2);
-    double pr = exp(gr * gr * inSigma2);
-    predlike = px * py * pr;
+//    double inSigma2 = -0.5  / (sigma * sigma);
+//    double px = exp(gx * gx * inSigma2);
+//    double py = exp(gy * gy * inSigma2);
+//    double pr = exp(gr * gr * inSigma2);
+//    predlike = px * py * pr;
 
     //predlike = fabs(gx) + fabx(gy) + fabs(gr);
+    predlike = exp((gx *gx + gy*gy + gr*gr) * -0.5 * 100);
+    //predlike = 1.0 - sqrt(gx*gx + gy*gy + gr*gr) / 304;
 
     x += gx;
     y += gy;
@@ -256,9 +265,10 @@ void vParticle::concludeLikelihood()
 //    }
 
     nupdates = 0;
-    likelihood = 0.0;
+    likelihood = 0;
     for(int i = 0; i < angbuckets; i++) {
         likelihood += angdist[i];
+        negdist[i] = 0;
     }
 
     if(likelihood > minlikelihood)
@@ -270,6 +280,7 @@ void vParticle::concludeLikelihood()
     for(int i = 0; i < angbuckets; i++) {
         angdist[i] *= predlike;
     }
+    //negdist.resize(angbuckets, 0.0);
 
 
 

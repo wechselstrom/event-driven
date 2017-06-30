@@ -10,37 +10,37 @@
 <module>
     <name> vPepper </name>
     <parameters> </parameters>
-    <node> icub23 </node>
+    <node> icublap31 </node>
 </module>
 
 <module>
     <name> vParticleFilter </name>
-    <parameters> --threads 10 --variance 1.0 --lParticles 200 --rParticles 200 --obsinlier 1.0 --obsoutlier 6.0 --obsthresh 10.0 --adaptive </parameters>
-    <node> icub-blade </node>
+    <parameters> --lParticles 0 --rParticles 200 --obsinlier 2.0 --obsthresh 14.0 --adaptive --randoms 0.01 --strict </parameters>
+    <node> icublap31 </node>
 </module>
 
 <module>
     <name> yarpscope </name>
     <parameters> --remote /vpf/scope:o --index "(0 1 2 3)" --color "(red blue green black)" </parameters>
-    <node> icub24 </node>
+    <node> icublap31 </node>
 </module>
 
 <module>
     <name> vFramer </name>
     <parameters> --name /vFramer --displays "(0 /left (AE CLE ISO) 1 /right (AE CLE ISO))" --height 240 --width 304 --flip </parameters>
-    <node>icub24</node>
+    <node>icublap31</node>
 </module>
 
 <module>
    <name> yarpview </name>
    <parameters>--name /viewLeft --x 30 --y 30 --w 608 --h 480 --synch </parameters>
-   <node>icub24</node>
+   <node>icublap31</node>
 </module>
 
 <module>
    <name> yarpview </name>
    <parameters>--name /viewRight --x 658 --y 30 --w 608 --h 480 --synch </parameters>
-   <node>icub24</node>
+   <node>icublap31</node>
 </module>
 
 <module>
