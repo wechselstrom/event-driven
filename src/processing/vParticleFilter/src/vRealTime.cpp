@@ -267,7 +267,7 @@ void particleProcessor::run()
         for(int i = 0; i < nparticles; i ++) {
             avgx += indexedlist[i]->getx() * indexedlist[i]->getw();
             avgy += indexedlist[i]->gety() * indexedlist[i]->getw();
-            avgr += indexedlist[i]->getr() * indexedlist[i]->getw();
+            avgr += indexedlist[i]->getSize() * indexedlist[i]->getw();
             avgtw += indexedlist[i]->gettw() * indexedlist[i]->getw();
         }
 
@@ -351,7 +351,7 @@ void particleProcessor::run()
 
 bool particleProcessor::inbounds(vParticle &p)
 {
-    int r = p.getr();
+    int r = p.getSize();
 
     if(r < rbound_min) {
         p.resetRadius(rbound_min);

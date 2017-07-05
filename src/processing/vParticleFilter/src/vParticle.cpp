@@ -105,7 +105,7 @@ double approxatan2(double y, double x) {
     double ax = std::abs(x); double ay = std::abs(y);
     double a = std::min (ax, ay) / std::max (ax, ay);
     //double s = pow(a, 2.0);
-    //double r = ((-0.0464964749 * s + 0.15931422) * s - 0.327622764) * s * a + a;
+    //double size = ((-0.0464964749 * s + 0.15931422) * s - 0.327622764) * s * a + a;
     
     double r = a * (M_PI_4 - (a - 1) * 0.273318560862312);
     
@@ -254,7 +254,7 @@ vParticle& vParticle::operator=(const vParticle &rhs)
 {
     this->x = rhs.x;
     this->y = rhs.y;
-    this->r = rhs.r;
+    this->size = rhs.size;
     this->tw = rhs.tw;
     this->weight = rhs.weight;
     this->stamp = rhs.stamp;
@@ -265,7 +265,8 @@ void vParticle::initialiseState(double x, double y, double r, double tw)
 {
     this->x = x;
     this->y = y;
-    this->r = r;
+    if (!this->size)
+        this->size = r;
     this->tw = tw;
 }
 
@@ -286,7 +287,7 @@ void vParticle::resetWeight(double value)
 
 void vParticle::resetRadius(double value)
 {
-    this->r = value;
+    this->size = value;
 }
 
 void vParticle::updateWeightSync(double normval)
@@ -311,7 +312,7 @@ void vParticle::predict(unsigned long timestamp)
     
     x += gx;
     y += gy;
-//    r += gr;
+//    size += gr;
     
     double pr = exp(-(gr*gr) / (2.0 * 0.16 * variance * variance));
     double py = exp(-(gy*gy) / (2.0 * variance * variance));
@@ -321,37 +322,11 @@ void vParticle::predict(unsigned long timestamp)
 
 //    x = generateGaussianNoise(x, variance);
 //    y = generateGaussianNoise(y, variance);
-//    r = generateGaussianNoise(r, variance * 0.4);
+//    size = generateGaussianNoise(size, variance * 0.4);
 
 }
 
-void vParticle::concludeLikelihood()
-{
-    double dtavg = 0;
-    double dtvar = 0;
-    int n = 0;
-    
-    for(unsigned int i = 0; i < angdist.size(); i++) {
-        if(angdist[i] == 0 || angdist[i] > maxtw) continue;
-        dtavg += angdist[i];
-        n++;
-    }
-    if(n > minlikelihood) {
-        dtavg /= n;
-        for(unsigned int i = 0; i < angdist.size(); i++) {
-            if(angdist[i] == 0 || angdist[i] > maxtw) continue;
-            dtvar += (dtavg - angdist[i]) * (dtavg - angdist[i]);
-        }
-        dtvar /= n;
-        dtvar = 0.000001 + 1.0 / sqrt(dtvar * 2.0 * M_PI);
-    } else {
-        dtvar = 0.000001;
-    }
-    
-    if(likelihood > minlikelihood) tw = maxtw;
-    weight = likelihood * weight * dtvar;// * predlike;
-    
-}
+
 
 /*****************vParticleCircle********************/
 
@@ -365,8 +340,8 @@ int vParticleCircle::incrementalLikelihood(int vx, int vy, int dt)
     if(dy > 0) rdy = dy + 0.5;
     else rdy = dy - 0.5;
     
-    double sqrd = pcb->queryDistance(rdy, rdx) - r;
-    //double sqrd = sqrt(pow(dx, 2.0) + pow(dy, 2.0)) - r;
+    double sqrd = pcb->queryDistance(rdy, rdx) - size;
+    //double sqrd = sqrt(pow(dx, 2.0) + pow(dy, 2.0)) - size;
     
     if(sqrd > -inlierParameter && sqrd < inlierParameter) {
         
@@ -409,8 +384,47 @@ void vParticleCircle::initLikelihood()
     maxtw = 0;
 }
 
+void vParticleCircle::concludeLikelihood()
+{
+    double dtavg = 0;
+    double dtvar = 0;
+    int n = 0;
+    
+    for(unsigned int i = 0; i < angdist.size(); i++) {
+        if(angdist[i] == 0 || angdist[i] > maxtw) continue;
+        dtavg += angdist[i];
+        n++;
+    }
+    if(n > minlikelihood) {
+        dtavg /= n;
+        for(unsigned int i = 0; i < angdist.size(); i++) {
+            if(angdist[i] == 0 || angdist[i] > maxtw) continue;
+            dtvar += (dtavg - angdist[i]) * (dtavg - angdist[i]);
+        }
+        dtvar /= n;
+        dtvar = 0.000001 + 1.0 / sqrt(dtvar * 2.0 * M_PI);
+    } else {
+        dtvar = 0.000001;
+    }
+    
+    if(likelihood > minlikelihood) tw = maxtw;
+    weight = likelihood * weight * dtvar;// * predlike;
+    
+}
 /*********************vParticleTemplate*************************/
 
+vParticleTemplate::vParticleTemplate( yarp::sig::Matrix vTemplate)  :
+        vParticle(),
+        vTemplate(vTemplate){
+    this->size = std::max (vTemplate.cols(),vTemplate.rows());
+    for (int r = 0; r < vTemplate.rows(); ++r) {
+        for (int c = 0; c < vTemplate.cols(); ++c) {
+            if (vTemplate[r,c] > 0){
+                ++normVal;
+            }
+        }
+    }
+};
 
 void vParticleTemplate::initLikelihood() {
     likelihood = minlikelihood;
@@ -430,6 +444,7 @@ int vParticleTemplate::incrementalLikelihood( int vx, int vy, int dt ) {
     if (inROI){
         score += vTemplate(dx,dy);
     }
+
     if(score >= likelihood) {
         likelihood = score;
         maxtw = dt;
@@ -439,3 +454,32 @@ int vParticleTemplate::incrementalLikelihood( int vx, int vy, int dt ) {
 }
 
 
+void vParticleTemplate::concludeLikelihood()
+{
+    double dtavg = 0;
+    double dtvar = 0;
+    int n = 0;
+    
+    for(unsigned int i = 0; i < angdist.size(); i++) {
+        if(angdist[i] == 0 || angdist[i] > maxtw) continue;
+        dtavg += angdist[i];
+        n++;
+    }
+    if(n > minlikelihood) {
+        dtavg /= n;
+        for(unsigned int i = 0; i < angdist.size(); i++) {
+            if(angdist[i] == 0 || angdist[i] > maxtw) continue;
+            dtvar += (dtavg - angdist[i]) * (dtavg - angdist[i]);
+        }
+        dtvar /= n;
+        dtvar = 0.000001 + 1.0 / sqrt(dtvar * 2.0 * M_PI);
+    } else {
+        dtvar = 0.000001;
+    }
+    
+    likelihood /= normVal;
+    std::cout << "likelihood = " << likelihood << std::endl;
+    if(likelihood > minlikelihood) tw = maxtw;
+    weight = likelihood * weight * dtvar;// * predlike;
+    
+}

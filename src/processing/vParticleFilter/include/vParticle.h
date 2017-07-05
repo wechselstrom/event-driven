@@ -52,7 +52,7 @@ protected:
     //state and weight
     double x;
     double y;
-    double r;
+    double size;
     double tw;
     double weight;
 
@@ -83,7 +83,7 @@ public:
 
     virtual void initLikelihood() = 0;
     virtual int incrementalLikelihood(int vx, int vy, int dt) = 0;
-    void concludeLikelihood();
+    virtual void concludeLikelihood() = 0;
 
     void updateWeightSync(double normval);
 
@@ -91,7 +91,7 @@ public:
     int    getid() { return id; }
     double getx()  { return x; }
     double gety()  { return y; }
-    double getr()  { return r; }
+    double getSize()  { return size; }
     double getw()  { return weight; }
     double getl()  { return likelihood; }
     double gettw() { return tw; }
@@ -107,6 +107,8 @@ public:
     
     void initLikelihood();
     int incrementalLikelihood(int vx, int vy, int dt);
+    void concludeLikelihood();
+    
 };
 
 class vParticleTemplate : public vParticle
@@ -114,14 +116,16 @@ class vParticleTemplate : public vParticle
 private:
     yarp::sig::Matrix vTemplate;
     double score;
-    
+    double normVal;
 public:
     
-    vParticleTemplate( yarp::sig::Matrix vTemplate)  : vParticle(), vTemplate(vTemplate){};
+    vParticleTemplate( yarp::sig::Matrix vTemplate);
     vParticle* clone() { return new vParticleTemplate(*this);};
     
     void initLikelihood();
     int incrementalLikelihood(int vx, int vy, int dt);
+    void concludeLikelihood();
+    
 };
 
 class preComputedBins

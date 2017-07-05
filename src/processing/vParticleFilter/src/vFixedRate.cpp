@@ -22,7 +22,7 @@ vParticleReader::vParticleReader()
     rate = 1000;
     seedx = 0; seedy = 0; seedr = 0;
 
-    obsThresh = 30.0;
+    obsThresh = 0.001;
     obsInlier = 1.5;
     obsOutlier = 3.0;
 
@@ -58,15 +58,22 @@ void vParticleReader::initialise( unsigned int width, unsigned int height, unsig
 
     //initialise the particles
     vParticle* p;
-    yarp::sig::Matrix vTemplate = generateCircularTemplate( seedr, 4, 5);
+    std::vector<yarp::sig::Matrix > vTemplates;
+    int minSize = 10;
+    int maxSize = 30;
+    int step = 5;
+    for ( int j = minSize; j <= maxSize; j+=step ) {
+        vTemplates.push_back(generateCircularTemplate( j, 4, 5));
+    }
+    
     indexedlist.clear();
     for(int i = 0; i < nparticles; i++) {
         switch (particleType) {
             case ParticleType::Circle :
                 p = new vParticleCircle; break;
             case ParticleType::Template :
-                p = new vParticleTemplate(vTemplate); break;
-        
+                int ind = i * vTemplates.size() / nparticles;
+                p = new vParticleTemplate(vTemplates[ind]); break;
         }
         
         p->initialiseParameters(i, obsThresh, obsOutlier, obsInlier, pVariance, 128);
@@ -86,6 +93,8 @@ void vParticleReader::initialise( unsigned int width, unsigned int height, unsig
         p  = (*it)->clone();
         indexedSnap.push_back(p);
     }
+    
+    
 }
 
 /******************************************************************************/
@@ -141,7 +150,7 @@ void vParticleReader::interrupt()
 
 bool vParticleReader::inbounds(vParticle &p)
 {
-    int r = p.getr();
+    int r = p.getSize();
 
     if(r < rbound_min) {
         p.resetRadius(rbound_min);
@@ -203,27 +212,34 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
                 if(rn > pwsum)
                     indexedlist[i]->randomise(res.width, res.height, 30.0, avgtw);
                 else {
-                    double accum = 0.0; int j = 0;
-                    for(j = 0; j < nparticles; j++) {
+                    double accum = 0.0;
+                    for(int j = 0; j < nparticles; j++) {
                         accum += indexedSnap[j]->getw();
-                        if(accum > rn) break;
+                        if(accum > rn) {
+                            *indexedlist[i] = *indexedSnap[j];
+                            break;
+                        }
                     }
-                    *indexedlist[i] = *indexedSnap[j];
                 }
             }
         }
-
+        
+    
         //PREDICT
         unsigned int maxtw = 0;
         for(int i = 0; i < nparticles; i++) {
+    
             indexedlist[i]->predict(t);
-            if(!inbounds(*indexedlist[i])) {
-                indexedlist[i]->randomise(res.width, res.height, 30.0, avgtw);
-            }
+//
+//            if(!inbounds(*indexedlist[i])) {
+//                indexedlist[i]->randomise(res.width, res.height, 30.0, avgtw);
+//            }
+//
             if(indexedlist[i]->gettw() > maxtw)
                 maxtw = indexedlist[i]->gettw();
         }
 
+        
         //OBSERVE
         for(int i = 0; i < nparticles; i++) {
             indexedlist[i]->initLikelihood();
@@ -269,7 +285,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
             pwsumsq += pow(indexedlist[i]->getw(), 2.0);
             avgx += indexedlist[i]->getx() * indexedlist[i]->getw();
             avgy += indexedlist[i]->gety() * indexedlist[i]->getw();
-            avgr += indexedlist[i]->getr() * indexedlist[i]->getw();
+            avgr += indexedlist[i]->getSize() * indexedlist[i]->getw();
             avgtw += indexedlist[i]->gettw() * indexedlist[i]->getw();
             avgl += indexedlist[i]->getl();
         }
@@ -308,7 +324,6 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
 
     }
     
-   
     if(scopeOut.getOutputCount()) {
 
         yarp::os::Bottle &sob = scopeOut.prepare();
@@ -318,7 +333,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
         if(dt < 0) dt += ev::vtsHelper::max_stamp;
 //        sob.addDouble(dt);
 //        sob.addDouble(q.size());
-        sob.addDouble(avgl);
+        sob.addDouble(avgr);
         scopeOut.setEnvelope(st);
         scopeOut.write();
     }
@@ -340,7 +355,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
             //image(res.width - px - 1, res.height - py - 1) = yarp::sig::PixelBgr(255, 255, 255);
             int l = indexedlist[i]->getl() * 20;
             image(px, py) = yarp::sig::PixelBgr(l, l, l);
-            //drawcircle(image, indexedlist[i]->getx(), indexedlist[i]->gety(), indexedlist[i]->getr(), indexedlist[i]->getid());
+            //drawcircle(image, indexedlist[i]->getx(), indexedlist[i]->gety(), indexedlist[i]->getSize(), indexedlist[i]->getid());
         }
         drawEvents(image, stw, avgtw, false);
         //drawcircle(image, res.width - 1 - avgx, res.height - 1 - avgy, avgr, 1);
