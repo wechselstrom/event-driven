@@ -238,7 +238,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
         tempT = yarp::os::Time::now();
         //PREDICT
         for(int i = 0; i < nparticles; i++) {
-            indexedlist[i].predict(updatedvs / 16.0);
+            indexedlist[i].predict(4.0 * updatedvs / 64.0);
             if(!inbounds(indexedlist[i])) {
                 indexedlist[i].randomise(res.width, res.height, rbound_max);
             }
@@ -249,18 +249,19 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
     }
 
     static int delay1 = 0;
+    const static int delayc1 = 5;
     delay1++;
-    if(scopeOut.getOutputCount() && delay1 > 5) {
+    if(scopeOut.getOutputCount() && delay1 > delayc1) {
         delay1 = 0;
         yarp::os::Bottle &sob = scopeOut.prepare();
         sob.clear();
 
         //double dt = q.back()->stamp - q.front()->stamp;
         //if(dt < 0) dt += ev::vtsHelper::max_stamp;
-        sob.addDouble(obsTv * vtsHelper::tsscaler);
-        sob.addDouble(obsTy);
-        sob.addDouble(resTy);
-        sob.addDouble(predTy);
+        sob.addDouble(obsTv * vtsHelper::tsscaler / delayc1);
+        sob.addDouble(obsTy / delayc1);
+        sob.addDouble(resTy / delayc1);
+        sob.addDouble(predTy / delayc1);
         obsTv = 0;
         obsTy = 0;
         resTy = 0;

@@ -222,6 +222,11 @@ void vParticle::predict(double sigma)
     double gy = generateGaussianNoise(0, sigma);
     double gr = generateGaussianNoise(0, sigma);
 
+//    sigma *= 3;
+//    double gx = 2 * sigma * rand() / (double)RAND_MAX - sigma;
+//    double gy = 2 * sigma * rand() / (double)RAND_MAX - sigma;
+//    double gr = 2 * sigma * rand() / (double)RAND_MAX - sigma;
+
 //    double inSigma2 = -0.5  / (sigma * sigma);
 //    double px = exp(gx * gx * inSigma2);
 //    double py = exp(gy * gy * inSigma2);
@@ -229,7 +234,7 @@ void vParticle::predict(double sigma)
 //    predlike = px * py * pr;
 
     //predlike = fabs(gx) + fabx(gy) + fabs(gr);
-    predlike = exp((gx *gx + gy*gy + gr*gr) * -0.5 * 0.005);
+    //predlike = exp((gx *gx + gy*gy + gr*gr) * -0.5 * 0.005);
     //predlike = 1.0 - sqrt(gx*gx + gy*gy + gr*gr) / 304;
 
     x += gx;
