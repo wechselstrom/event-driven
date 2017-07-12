@@ -25,7 +25,11 @@
 
 #include <yarp/os/Bottle.h>
 #include "iCub/eventdriven/vCodec.h"
-
+//vector is only used in vBottleMimic and aparently never used
+//however since it is compiled when creating the bindings
+//we require it or have to delete vBottleMimic (if it in fact is
+//dead code)
+#include <vector>
 namespace ev {
 
 class vBottle : public yarp::os::Bottle {
