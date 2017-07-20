@@ -23,16 +23,17 @@ vCornerThread::vCornerThread(unsigned int height, unsigned int width, std::strin
     surfaceleft  = new temporalSurface(width, height, this->temporalsize);
     surfaceright = new temporalSurface(width, height, this->temporalsize);
 
-    int gaussiansize = 2*windowRad + 2 - sobelsize;
-    convolution.configure(sobelsize, gaussiansize);
-    convolution.setSobelFilters();
-    convolution.setGaussianFilter(sigma);
+//    int gaussiansize = 2*windowRad + 2 - sobelsize;
+//    convolution.configure(sobelsize, gaussiansize);
+//    convolution.setSobelFilters();
+//    convolution.setGaussianFilter(sigma);
 
     std::cout << "Using a " << sobelsize << "x" << sobelsize << " filter ";
     std::cout << "and a " << 2*windowRad + 1 << "x" << 2*windowRad + 1 << " spatial window" << std::endl;
 
     for(int i = 0; i < nthreads; i ++) {
         computeThreads.push_back(new vComputeThread(sobelsize, windowRad, sigma, thresh, qlen, &outthread));
+        computeThreads[i]->start();
     }
     std::cout << "Using " << nthreads << " threads for computation " << std::endl;
 
@@ -156,9 +157,6 @@ void vCornerThread::onStop()
 
 //void vCornerThread::run()
 //{
-////    double timeInit;
-////    double stampInit;
-////    bool stampChecked = false;
 
 //    //    ev::temporalSurface *cSurf = 0;
 //    while(true) {
@@ -179,13 +177,6 @@ void vCornerThread::onStop()
 
 //            auto ae = ev::is_event<ev::AE>(*qi);
 //            double dt = ae->stamp - prevstamp;
-
-////            if (!stampChecked){
-////                stampInit = ae->stamp * vtsHelper::tsscaler;
-////                timeInit = yarp::os::Time::now();
-////                stampChecked = true;
-////            }
-////            if(dt < 0.0) stampInit -= vtsHelper::max_stamp * vtsHelper::tsscaler;
 
 //            if(dt < 0.0) dt += vtsHelper::max_stamp;
 //            cpudelay -= dt * vtsHelper::tsscaler;
@@ -208,35 +199,27 @@ void vCornerThread::onStop()
 
 //            if(cpudelay < 0.0) cpudelay = 0.0;
 
-//            if(cpudelay <= 0.001) { //0.1 0.000001
-//                //                if(t1 == 0.0)
+//            if(cpudelay <= 0.1) {
 //                t1 = yarp::os::Time::now();
-////                //we look for a free thread
-////                //                std::cout << "processing " << std::endl;
-////                for(int k = 0; k < nthreads; k++) {
-////                    if(!computeThreads[k]->isRunning()) {
-////                        //                        t1 = yarp::os::Time::now();
-////                        //vQueue subsurf = cSurf->getSurfaceN(0, qlen, windowRad, ae->x, ae->y);
-////                        //                        computeThreads[k]->setData(cSurf->getSurfaceN(0, 5, windowRad, ae->x, ae->y), yarpstamp);
-////                        computeThreads[k]->setData(cSurf, yarpstamp);
-////                        computeThreads[k]->start();
-//////                        std::cout << k << std::endl;
-////                        countProcessed++;
-////                        break;
-////                    }
-////                }
-////                //                if(!processing) std::cout << ".";
-
-//                patch.clear();
-//                cSurf->getSurf(patch, windowRad);
-//                if(detectcorner(patch, ae->x, ae->y)) {
-//                    auto ce = ev::make_event<LabelledAE>(ae);
-//                    ce->ID = 1;
-//                    outthread.pushevent(ce, yarpstamp);
+//                // we look for a free thread
+//                for(int k = 0; k < nthreads; k++) {
+//                    if(!computeThreads[k]->isRunning()) {
+//                        computeThreads[k]->setData(cSurf, yarpstamp);
+//                        computeThreads[k]->start();
+////                        std::cout << k << std::endl;
+//                        countProcessed++;
+//                        break;
+//                    }
 //                }
-//                countProcessed++;
 
-////                std::cout << yarp::os::Time::now() - t1 << std::endl;
+//                ////                patch.clear();
+//                ////                cSurf->getSurf(patch, windowRad);
+//                ////                if(detectcorner(patch, ae->x, ae->y)) {
+//                ////                    auto ce = ev::make_event<LabelledAE>(ae);
+//                ////                    ce->ID = 1;
+//                ////                    outthread.pushevent(ce, yarpstamp);
+//                ////                }
+//                ////                countProcessed++;
 
 //                //time it took to process
 //                //                cpudelay = 0.0;
@@ -247,19 +230,11 @@ void vCornerThread::onStop()
 
 //        }
 
-//        //        std::cout << yarp::os::Time::now() - timeInit << " " <<prevstamp * vtsHelper::tsscaler - stampInit << " " << (yarp::os::Time::now() - timeInit) - (prevstamp * vtsHelper::tsscaler - stampInit) << std::endl;
-
-//        //        std::cout << q->size() << " " << countProcessed << " " << (double)countProcessed/q->size() << std::endl;
-
-//        //std::cout << std::endl;
-
 //        if(debugPort.getOutputCount()) {
 //            yarp::os::Bottle &scorebottleout = debugPort.prepare();
 //            scorebottleout.clear();
-////            scorebottleout.addDouble((yarp::os::Time::now() - timeInit) - (prevstamp * vtsHelper::tsscaler - stampInit));
 //            scorebottleout.addDouble((double)countProcessed/q->size());
-////            scorebottleout.addDouble(cpudelay);
-//            //            scorebottleout.addInt(evtcnt);
+//            scorebottleout.addDouble(cpudelay);
 //            debugPort.write();
 //        }
 
@@ -298,24 +273,25 @@ void vCornerThread::run()
 
             if(cpudelay < 0.0) cpudelay = 0.0;
 
-            if(cpudelay <= 0.1) { //0.1
+            if(cpudelay <= 0.1) {
                 t1 = yarp::os::Time::now();
 
                 computeThreads[k]->setData(cSurf, yarpstamp);
-                computeThreads[k]->run();
+//                std::cout << k << std::endl;
+                countProcessed++;
                 k++;
 
                 if(k == nthreads) k = 0;
 
                 //time it took to process
-                cpudelay += yarp::os::Time::now() - t1;
+                cpudelay += (yarp::os::Time::now() - t1); // * 0.8;
             }
         }
 
         if(debugPort.getOutputCount()) {
             yarp::os::Bottle &scorebottleout = debugPort.prepare();
             scorebottleout.clear();
-//            scorebottleout.addDouble((double)countProcessed/q->size());
+            scorebottleout.addDouble((double)countProcessed/q->size());
             scorebottleout.addDouble(cpudelay);
             debugPort.write();
         }
@@ -326,32 +302,32 @@ void vCornerThread::run()
 
 }
 
-bool vCornerThread::detectcorner(ev::vQueue patch, int x, int y)
-{
+//bool vCornerThread::detectcorner(ev::vQueue patch, int x, int y)
+//{
 
-    //set the final response to be centred on the current event
-    convolution.setResponseCenter(x, y);
+//    //set the final response to be centred on the current event
+//    convolution.setResponseCenter(x, y);
 
-    //update filter response
-    for(unsigned int i = 0; i < patch.size(); i++)
-    {
-        //events the patch
-        auto vi = ev::is_event<ev::AE>(patch[i]);
-        convolution.applysobel(vi);
+//    //update filter response
+//    for(unsigned int i = 0; i < patch.size(); i++)
+//    {
+//        //events the patch
+//        auto vi = ev::is_event<ev::AE>(patch[i]);
+//        convolution.applysobel(vi);
 
-    }
-    convolution.applygaussian();
-    double score = convolution.getScore();
+//    }
+//    convolution.applygaussian();
+//    double score = convolution.getScore();
 
-//    std::cout << score << std::endl;
+////    std::cout << score << std::endl;
 
-    //reset responses
-    convolution.reset();
+//    //reset responses
+//    convolution.reset();
 
-    //if score > thresh tag ae as ce
-    return score > thresh;
+//    //if score > thresh tag ae as ce
+//    return score > thresh;
 
-}
+//}
 
 /*////////////////////////////////////////////////////////////////////////////*/
 //threaded computation
@@ -389,11 +365,6 @@ vComputeThread::vComputeThread(int sobelsize, int windowRad, double sigma, doubl
 //void vComputeThread::run()
 //{
 
-////    std::cout << "thread " << this->getKey() << std::endl;
-////    yarp::os::Time::delay(5.0);
-
-//    //    yarp::os::Time::delay(0.1);
-////    double t1 = yarp::os::Time::now();
 //    if(patch.size() == 0) return;
 
 ////    auto aep = is_event<AE>(patch.front());
@@ -402,7 +373,6 @@ vComputeThread::vComputeThread(int sobelsize, int windowRad, double sigma, doubl
 //        ce->ID = 1;
 //        outthread->pushevent(ce, ystamp);
 //    }
-////    std::cout << yarp::os::Time::now() - t1 << std::endl;
 
 //}
 
@@ -424,9 +394,7 @@ void vComputeThread::run()
     while(true) {
         dataready.lock();
         processing.lock();
-        if(patch.size() == 0) return;
 
-//        std::cout << aep->x << " " << aep->stamp << std::endl;
         if(detectcorner(aep->x, aep->y)) {
             auto ce = make_event<LabelledAE>(aep);
             ce->ID = 1;
@@ -439,6 +407,8 @@ void vComputeThread::run()
 
 bool vComputeThread::detectcorner(int x, int y)
 {
+
+    if(patch.size() == 0) return false;
 
     //set the final response to be centred on the current event
     convolution.setResponseCenter(x, y);
@@ -454,7 +424,7 @@ bool vComputeThread::detectcorner(int x, int y)
     convolution.applygaussian();
     double score = convolution.getScore();
 
-    std::cout << score << std::endl;
+//    std::cout << score << std::endl;
 
     //reset responses
     convolution.reset();

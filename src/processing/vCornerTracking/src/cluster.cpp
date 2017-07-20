@@ -63,22 +63,20 @@ bool cluster::addEvent(ev::event<LabelledAE> evt, double currt)
     bool check;
 
     //discard the event if it's already in the cluster
-//    std::cout << checkevt[evt->y][evt->x] << std::endl;
+//    std::cout << checkevt[evt->y][evt->x] << std::endl << std::endl;
     if(checkevt[evt->y][evt->x] == 0) {
         checkevt[evt->y][evt->x] = 1;
         cluster_.push_back(evt);
         tlast_update = currt;
         check = true;
-        //        std::cout << "added " << std::endl;
     }
     else {
         check = false;
-        //        std::cout << "discarded " << std::endl;
     }
 
-//    //remove the first event added
-//    if(cluster_.size() > maxsize)
-//        cluster_.pop_front();
+    //remove the first event added
+    if(cluster_.size() > maxsize)
+        cluster_.pop_front();
 
     return check;
 
@@ -171,11 +169,12 @@ void cluster::fitLine()
 
     //only output when the fitting error is small
     //TODO
-    if(fiterr < 20.0) {
+//    if(fiterr < 8.0) {
         //    std::cout << "from line fitting " << -v[0]/v[2] * 1000000 << " " << -v[1]/v[2] * 1000000 << std::endl;
+//        std::cout << v[2] << std::endl << std::endl;
         vel.first = -v[0]/v[2];
         vel.second = -v[1]/v[2];
-    }
+//    }
 
 }
 
