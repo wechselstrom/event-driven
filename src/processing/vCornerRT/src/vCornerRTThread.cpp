@@ -335,23 +335,21 @@ void vCornerThread::run()
 
                 for(int k = 0; k < nthreads; k++) {
 
-                    //if thread does not have a task assigned
+                    //assign a task to a thread that is not managing a task
                     if(!computeThreads[k]->taskassigned) {
-
-                        //assign a task
-                        computeThreads[k]->assignTask(cSurf, yarpstamp);
+                        computeThreads[k]->assignTask(cSurf, &yarpstamp);
                     }
                 }
 
                 //time it took to process
-                cpudelay += (yarp::os::Time::now() - t1); // * 0.8;
+                cpudelay += (yarp::os::Time::now() - t1);
             }
         }
 
         if(debugPort.getOutputCount()) {
             yarp::os::Bottle &scorebottleout = debugPort.prepare();
             scorebottleout.clear();
-            scorebottleout.addDouble((double)countProcessed/q->size());
+//            scorebottleout.addDouble((double)countProcessed/q->size());
             scorebottleout.addDouble(cpudelay);
             debugPort.write();
         }
@@ -405,17 +403,23 @@ vComputeThread::vComputeThread(int sobelsize, int windowRad, double sigma, doubl
     convolution.setGaussianFilter(sigma);
     this->outthread = outthread;
 
+    taskassigned = false;
+
 //    dataready.lock();
 
 }
 
-void vComputeThread::assignTask(temporalSurface *cSurf, yarp::os::Stamp ystamp)
+void vComputeThread::assignTask(temporalSurface *cSurf, yarp::os::Stamp *ystamp)
 {
+    cSurf_p = cSurf;
+    ystamp_p = ystamp;
     taskassigned = true;
-    patch.clear();
-    cSurf->getSurf(patch, windowRad);
-    aep = is_event<AE>(cSurf->getMostRecent());
-    this->ystamp = ystamp;
+
+//    taskassigned = true;
+//    patch.clear();
+//    cSurf->getSurf(patch, windowRad);
+//    aep = is_event<AE>(cSurf->getMostRecent());
+//    this->ystamp = ystamp;
 }
 
 void vComputeThread::run()
@@ -427,10 +431,15 @@ void vComputeThread::run()
             yarp::os::Time::delay(0.00001);
         }
         else {
+
+            patch.clear();
+            cSurf_p->getSurf(patch, windowRad);
+            aep = is_event<AE>(cSurf_p->getMostRecent());
+
             if(detectcorner(aep->x, aep->y)) {
                 auto ce = make_event<LabelledAE>(aep);
                 ce->ID = 1;
-                outthread->pushevent(ce, ystamp);
+                outthread->pushevent(ce, *ystamp_p);
             }
             taskassigned = false;
         }
