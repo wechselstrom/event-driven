@@ -45,15 +45,18 @@ private:
     ev::event<ev::AddressEvent> aep;
     ev::collectorPort *outthread;
     yarp::os::Stamp ystamp;
-    yarp::os::Mutex processing;
-    yarp::os::Mutex dataready;
+//    yarp::os::Mutex processing;
+//    yarp::os::Mutex dataready;
 
     bool detectcorner(int x, int y);
 
 public:
+
+    bool taskassigned;
     vComputeThread(int sobelsize, int windowRad, double sigma, double thresh, unsigned int qlen, ev::collectorPort *outthread);
     void setData(ev::temporalSurface *cSurf, yarp::os::Stamp ystamp);
 //    void setData(ev::historicalSurface *cSurf, yarp::os::Stamp ystamp);
+    void assignTask(ev::temporalSurface *cSurf, yarp::os::Stamp ystamp);
     ev::event<ev::LabelledAE> getResponse();
     bool threadInit() { return true; }
     void run();

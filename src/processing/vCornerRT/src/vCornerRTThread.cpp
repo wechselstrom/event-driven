@@ -245,6 +245,63 @@ void vCornerThread::onStop()
 
 //}
 
+//void vCornerThread::run()
+//{
+//    while(true) {
+
+//        ev::vQueue *q = 0;
+//        while(!q && !isStopping()) {
+//            q = allocatorCallback.getNextQ(yarpstamp);
+//        }
+//        if(isStopping()) break;
+
+//        int countProcessed = 0;
+//        for(ev::vQueue::iterator qi = q->begin(); qi != q->end(); qi++) {
+
+//            auto ae = ev::is_event<ev::AE>(*qi);
+//            double dt = ae->stamp - prevstamp;
+//            if(dt < 0.0) dt += vtsHelper::max_stamp;
+//            cpudelay -= dt * vtsHelper::tsscaler;
+//            prevstamp = ae->stamp;
+
+//            ev::temporalSurface *cSurf;
+//            if(ae->getChannel() == 0)
+//                cSurf = surfaceleft;
+//            else
+//                cSurf = surfaceright;
+//            cSurf->fastAddEvent(*qi);
+
+//            if(cpudelay < 0.0) cpudelay = 0.0;
+
+//            if(cpudelay <= 0.1) {
+//                t1 = yarp::os::Time::now();
+
+//                computeThreads[k]->setData(cSurf, yarpstamp);
+////                std::cout << k << std::endl;
+//                countProcessed++;
+//                k++;
+
+//                if(k == nthreads) k = 0;
+
+//                //time it took to process
+//                cpudelay += (yarp::os::Time::now() - t1); // * 0.8;
+//            }
+//        }
+
+//        if(debugPort.getOutputCount()) {
+//            yarp::os::Bottle &scorebottleout = debugPort.prepare();
+//            scorebottleout.clear();
+//            scorebottleout.addDouble((double)countProcessed/q->size());
+//            scorebottleout.addDouble(cpudelay);
+//            debugPort.write();
+//        }
+
+//        allocatorCallback.scrapQ();
+
+//    }
+
+//}
+
 void vCornerThread::run()
 {
     while(true) {
@@ -276,12 +333,15 @@ void vCornerThread::run()
             if(cpudelay <= 0.1) {
                 t1 = yarp::os::Time::now();
 
-                computeThreads[k]->setData(cSurf, yarpstamp);
-//                std::cout << k << std::endl;
-                countProcessed++;
-                k++;
+                for(int k = 0; k < nthreads; k++) {
 
-                if(k == nthreads) k = 0;
+                    //if thread does not have a task assigned
+                    if(!computeThreads[k]->taskassigned) {
+
+                        //assign a task
+                        computeThreads[k]->assignTask(cSurf, yarpstamp);
+                    }
+                }
 
                 //time it took to process
                 cpudelay += (yarp::os::Time::now() - t1); // * 0.8;
@@ -345,8 +405,36 @@ vComputeThread::vComputeThread(int sobelsize, int windowRad, double sigma, doubl
     convolution.setGaussianFilter(sigma);
     this->outthread = outthread;
 
-    dataready.lock();
+//    dataready.lock();
 
+}
+
+void vComputeThread::assignTask(temporalSurface *cSurf, yarp::os::Stamp ystamp)
+{
+    taskassigned = true;
+    patch.clear();
+    cSurf->getSurf(patch, windowRad);
+    aep = is_event<AE>(cSurf->getMostRecent());
+    this->ystamp = ystamp;
+}
+
+void vComputeThread::run()
+{
+    while(true) {
+
+        //if no task is assigned, wait
+        if(!taskassigned) {
+            yarp::os::Time::delay(0.00001);
+        }
+        else {
+            if(detectcorner(aep->x, aep->y)) {
+                auto ce = make_event<LabelledAE>(aep);
+                ce->ID = 1;
+                outthread->pushevent(ce, ystamp);
+            }
+            taskassigned = false;
+        }
+    }
 }
 
 //void vComputeThread::setData(temporalSurface *cSurf, yarp::os::Stamp ystamp)
@@ -376,34 +464,34 @@ vComputeThread::vComputeThread(int sobelsize, int windowRad, double sigma, doubl
 
 //}
 
-void vComputeThread::setData(temporalSurface *cSurf, yarp::os::Stamp ystamp)
-{
-    processing.lock();
+//void vComputeThread::setData(temporalSurface *cSurf, yarp::os::Stamp ystamp)
+//{
+//    processing.lock();
 
-    patch.clear();
-    cSurf->getSurf(patch, windowRad);
-    aep = is_event<AE>(cSurf->getMostRecent());
-    this->ystamp = ystamp;
+//    patch.clear();
+//    cSurf->getSurf(patch, windowRad);
+//    aep = is_event<AE>(cSurf->getMostRecent());
+//    this->ystamp = ystamp;
 
-    processing.unlock();
-    dataready.unlock();
-}
+//    processing.unlock();
+//    dataready.unlock();
+//}
 
-void vComputeThread::run()
-{
-    while(true) {
-        dataready.lock();
-        processing.lock();
+//void vComputeThread::run()
+//{
+//    while(true) {
+//        dataready.lock();
+//        processing.lock();
 
-        if(detectcorner(aep->x, aep->y)) {
-            auto ce = make_event<LabelledAE>(aep);
-            ce->ID = 1;
-            outthread->pushevent(ce, ystamp);
-        }
-        processing.unlock();
-    }
+//        if(detectcorner(aep->x, aep->y)) {
+//            auto ce = make_event<LabelledAE>(aep);
+//            ce->ID = 1;
+//            outthread->pushevent(ce, ystamp);
+//        }
+//        processing.unlock();
+//    }
 
-}
+//}
 
 bool vComputeThread::detectcorner(int x, int y)
 {
