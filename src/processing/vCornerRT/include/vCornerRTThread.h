@@ -42,27 +42,37 @@ private:
     unsigned int qlen;
     ev::vQueue patch;
     filters convolution;
-    ev::event<ev::AddressEvent> aep;
+//    ev::event<ev::AddressEvent> aep;
     ev::collectorPort *outthread;
     yarp::os::Stamp ystamp;
 //    yarp::os::Mutex processing;
 //    yarp::os::Mutex dataready;
     yarp::os::Stamp *ystamp_p;
     ev::temporalSurface *cSurf_p;
+    yarp::os::Mutex *semaphore;
+    yarp::os::Semaphore *mutex;
+//    ev::vQueue *cPatch_p;
+    bool suspended;
 
     bool detectcorner(int x, int y);
 
 public:
 
     bool taskassigned;
-    vComputeThread(int sobelsize, int windowRad, double sigma, double thresh, unsigned int qlen, ev::collectorPort *outthread);
+    vComputeThread(int sobelsize, int windowRad, double sigma, double thresh, unsigned int qlen, ev::collectorPort *outthread, yarp::os::Mutex *semaphore);
     void setData(ev::temporalSurface *cSurf, yarp::os::Stamp ystamp);
 //    void setData(ev::historicalSurface *cSurf, yarp::os::Stamp ystamp);
     void assignTask(ev::temporalSurface *cSurf, yarp::os::Stamp *ystamp);
+//    void assignTask(ev::vQueue *cPatch, yarp::os::Stamp *ystamp);
+//    void assignTask(ev::temporalSurface *cSurf, yarp::os::Stamp ystamp);
+    void suspend();
+    void wakeup();
+    bool isSuspended();
     ev::event<ev::LabelledAE> getResponse();
     bool threadInit() { return true; }
     void run();
     void threadRelease() {}
+    void onStop();
 };
 
 class vCornerThread : public yarp::os::Thread
@@ -84,6 +94,9 @@ private:
 
     //list of thread for processing
     std::vector<vComputeThread *> computeThreads;
+    yarp::os::Mutex semaphore;
+
+    ev::vtsHelper unwrapper;
 
     //thread for the output
     ev::collectorPort outthread;
