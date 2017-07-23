@@ -37,7 +37,7 @@ bool vCornerTrackingModule::configure(yarp::os::ResourceFinder &rf)
     double maxdistance = rf.check("maxdist", yarp::os::Value(12.0)).asDouble();
     double trefresh = rf.check("trefresh", yarp::os::Value(1.0)).asDouble();
     int maxsize = rf.check("maxsize", yarp::os::Value(15)).asInt();
-    int minevts = rf.check("minevts", yarp::os::Value(10)).asInt();
+    int minevts = rf.check("minevts", yarp::os::Value(3)).asInt();
     bool callback = rf.check("callback", yarp::os::Value(true)).asBool();
 
     /* create the thread and pass pointers to the module parameters */
@@ -53,7 +53,7 @@ bool vCornerTrackingModule::configure(yarp::os::ResourceFinder &rf)
             return false;
     }
 
-
+    return true;
 
 }
 
