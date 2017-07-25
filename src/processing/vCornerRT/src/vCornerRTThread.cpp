@@ -31,8 +31,14 @@ vCornerThread::vCornerThread(unsigned int height, unsigned int width, std::strin
     std::cout << "Using a " << sobelsize << "x" << sobelsize << " filter ";
     std::cout << "and a " << 2*windowRad + 1 << "x" << 2*windowRad + 1 << " spatial window" << std::endl;
 
+    mutex_writer = new yarp::os::Mutex();
+    trytoread = new yarp::os::Mutex();
+    mutex_reader = new yarp::os::Mutex();
+    readcount = 0;
+
     for(int i = 0; i < nthreads; i ++) {
-        computeThreads.push_back(new vComputeThread(sobelsize, windowRad, sigma, thresh, qlen, &outthread, &semaphore));
+        computeThreads.push_back(new vComputeThread(sobelsize, windowRad, sigma, thresh, qlen, &outthread, &semaphore,
+                                                    mutex_writer, trytoread, mutex_reader, &readcount));
         computeThreads[i]->start();
     }
     std::cout << "Using " << nthreads << " threads for computation " << std::endl;
@@ -42,7 +48,8 @@ vCornerThread::vCornerThread(unsigned int height, unsigned int width, std::strin
     this->t1 = this->t2 = 0.0; // yarp::os::Time::now();
     this->k = 0;
 
-//    std::cout << this->setPriority(10, 2) << " ";
+//    this->setPriority(5, 1);
+//    std::cout << "Priority main thread " << this->getPriority() << std::endl;
 
 }
 
@@ -87,8 +94,12 @@ void vCornerThread::onStop()
 
     delete surfaceleft;
     delete surfaceright;
-}
 
+    delete mutex_writer;
+    delete trytoread;
+    delete mutex_reader;
+
+}
 
 //void vCornerThread::run()
 //{
@@ -325,7 +336,7 @@ void vCornerThread::run()
         //yarp::os::Time::delay(0.0005);
 
         int countProcessed = 0;
-        ev::vQueue patch;
+        //        ev::vQueue patch;
         for(ev::vQueue::iterator qi = q->begin(); qi != q->end(); qi++) {
 
             auto ae = ev::is_event<ev::AE>(*qi);
@@ -366,9 +377,17 @@ void vCornerThread::run()
                 cSurf = surfaceleft;
             else
                 cSurf = surfaceright;
-            semaphore.lock();
+
+            //            semaphore.lock();
+
+            //            trytoread->lock();
+            mutex_writer->lock();
             cSurf->fastAddEvent(*qi);
-            semaphore.unlock();
+            mutex_writer->unlock();
+            //            trytoread->unlock();
+
+            //            semaphore.unlock();
+
 
             //            if(cpudelay < 0.0) cpudelay = 0.0;
 
@@ -379,14 +398,15 @@ void vCornerThread::run()
 
                 //assign a task to a thread that is not managing a task
                 //                                    if(!computeThreads[k]->taskassigned) {
-                if(computeThreads[k]->isSuspended()) {
-                    //                        patch.clear();
+                if(computeThreads[k]->available()) {
+                    //                    patch.clear();
                     //                    cSurf->getSurf(patch, windowRad);
 
-                    computeThreads[k]->assignTask(cSurf, &yarpstamp);
-//                    computeThreads[k]->assignTask(&patch, &yarpstamp);
+                    computeThreads[k]->assignTask(ae, cSurf, &yarpstamp);
+                    //                    computeThreads[k]->assignTask(ae, &patch, &yarpstamp);
 
                     //                        computeThreads[k]->assignTask(cSurf, yarpstamp);
+
                     countProcessed++;
                     break;
                 }
@@ -452,7 +472,8 @@ void vCornerThread::run()
 /*////////////////////////////////////////////////////////////////////////////*/
 //threaded computation
 /*////////////////////////////////////////////////////////////////////////////*/
-vComputeThread::vComputeThread(int sobelsize, int windowRad, double sigma, double thresh, unsigned int qlen, collectorPort *outthread, yarp::os::Mutex *semaphore)
+vComputeThread::vComputeThread(int sobelsize, int windowRad, double sigma, double thresh, unsigned int qlen, collectorPort *outthread, yarp::os::Mutex *semaphore,
+                               yarp::os::Mutex *mutex_writer, yarp::os::Mutex *trytoread, yarp::os::Mutex *mutex_reader, int *readcount)
 {
     this->sobelsize = sobelsize;
     this->windowRad = windowRad;
@@ -470,18 +491,29 @@ vComputeThread::vComputeThread(int sobelsize, int windowRad, double sigma, doubl
     suspended = true;
 //    taskassigned = false;
 
+    this->mutex_writer = mutex_writer;
+    this->trytoread = trytoread;
+    this->mutex_reader = mutex_reader;
+    this->readcount = readcount;
+
 //    dataready.lock();
+
+//    this->setPriority(1, 1);
+//    std::cout << "Priority child thread " << this->getPriority() << std::endl;
 
 }
 
-//void vComputeThread::assignTask(vQueue *cPatch, yarp::os::Stamp *ystamp)
-void vComputeThread::assignTask(temporalSurface *cSurf, yarp::os::Stamp *ystamp)
+//void vComputeThread::assignTask(ev::event<ev::AddressEvent> ae, vQueue *cPatch, yarp::os::Stamp *ystamp)
+//void vComputeThread::assignTask(temporalSurface *cSurf, yarp::os::Stamp *ystamp)
 //void vComputeThread::assignTask(temporalSurface *cSurf, yarp::os::Stamp ystamp)
+void vComputeThread::assignTask(ev::event<AddressEvent> ae, temporalSurface *cSurf, yarp::os::Stamp *ystamp)
 {
     cSurf_p = cSurf;
 //    cPatch_p = cPatch;
     ystamp_p = ystamp;
+    aep = ae;
     wakeup();
+
 //    taskassigned = true;
 
 //    patch.clear();
@@ -502,7 +534,7 @@ void vComputeThread::wakeup()
     mutex->post();
 }
 
-bool vComputeThread::isSuspended()
+bool vComputeThread::available()
 {
     return suspended;
 }
@@ -516,18 +548,35 @@ void vComputeThread::run()
         //if no task is assigned, wait
 //        if(!taskassigned) {
         if(suspended) {
-//            yarp::os::Time::delay(0.00001);
             mutex->wait();
         }
         else {
 
             patch.clear();
-            semaphore->lock();
-            cSurf_p->getSurf(patch, windowRad);
-            semaphore->unlock();
+//            trytoread->lock();
+            mutex_reader->lock();
+            (*readcount)++;
+//            if(*readcount > 1)
+//                std::cout << *readcount << std::endl;
+            if(*readcount == 1)
+                mutex_writer->lock();
+            mutex_reader->unlock();
+//            trytoread->unlock();
 
-            auto aep = is_event<AE>(cSurf_p->getMostRecent());
-//            auto aep = is_event<AE>(cPatch_p->back());
+            cSurf_p->getSurf(patch, aep->x, aep->y, windowRad);
+
+            mutex_reader->lock();
+            (*readcount)--;
+            if(*readcount == 0)
+                mutex_writer->unlock();
+            mutex_reader->unlock();
+
+//            patch.clear();
+//            semaphore->lock();
+//            cSurf_p->getSurf(patch, windowRad);
+//            semaphore->unlock();
+
+//            auto aep = is_event<AE>(cSurf_p->getMostRecent());
             if(detectcorner(aep->x, aep->y)) {
                 auto ce = make_event<LabelledAE>(aep);
                 ce->ID = 1;

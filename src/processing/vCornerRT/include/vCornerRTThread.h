@@ -42,7 +42,6 @@ private:
     unsigned int qlen;
     ev::vQueue patch;
     filters convolution;
-//    ev::event<ev::AddressEvent> aep;
     ev::collectorPort *outthread;
     yarp::os::Stamp ystamp;
 //    yarp::os::Mutex processing;
@@ -51,7 +50,15 @@ private:
     ev::temporalSurface *cSurf_p;
     yarp::os::Mutex *semaphore;
     yarp::os::Semaphore *mutex;
+
+    yarp::os::Mutex *mutex_writer;
+    yarp::os::Mutex *trytoread;
+    yarp::os::Mutex *mutex_reader;
+    int *readcount;
+
 //    ev::vQueue *cPatch_p;
+    ev::event<ev::AddressEvent> aep;
+
     bool suspended;
 
     bool detectcorner(int x, int y);
@@ -59,15 +66,17 @@ private:
 public:
 
     bool taskassigned;
-    vComputeThread(int sobelsize, int windowRad, double sigma, double thresh, unsigned int qlen, ev::collectorPort *outthread, yarp::os::Mutex *semaphore);
+    vComputeThread(int sobelsize, int windowRad, double sigma, double thresh, unsigned int qlen, ev::collectorPort *outthread, yarp::os::Mutex *semaphore,
+                    yarp::os::Mutex *mutex_writer, yarp::os::Mutex *trytoread, yarp::os::Mutex *mutex_reader, int *readcount);
     void setData(ev::temporalSurface *cSurf, yarp::os::Stamp ystamp);
 //    void setData(ev::historicalSurface *cSurf, yarp::os::Stamp ystamp);
-    void assignTask(ev::temporalSurface *cSurf, yarp::os::Stamp *ystamp);
-//    void assignTask(ev::vQueue *cPatch, yarp::os::Stamp *ystamp);
+//    void assignTask(ev::temporalSurface *cSurf, yarp::os::Stamp *ystamp);
+    void assignTask(ev::event<ev::AddressEvent> ae, ev::temporalSurface *cSurf, yarp::os::Stamp *ystamp);
+//    void assignTask(ev::event<ev::AddressEvent> aep, ev::vQueue *cPatch, yarp::os::Stamp *ystamp);
 //    void assignTask(ev::temporalSurface *cSurf, yarp::os::Stamp ystamp);
     void suspend();
     void wakeup();
-    bool isSuspended();
+    bool available();
     ev::event<ev::LabelledAE> getResponse();
     bool threadInit() { return true; }
     void run();
@@ -96,6 +105,12 @@ private:
     std::vector<vComputeThread *> computeThreads;
     yarp::os::Mutex semaphore;
 
+    //to protect the writing
+    yarp::os::Mutex *mutex_writer;
+    yarp::os::Mutex *trytoread;
+    yarp::os::Mutex *mutex_reader;
+    int readcount;
+
     ev::vtsHelper unwrapper;
 
     //thread for the output
@@ -107,6 +122,8 @@ private:
     double t1;
     double t2;
     yarp::os::Stamp yarpstamp;
+
+    int qsize;
     int k;
 
     //parameters

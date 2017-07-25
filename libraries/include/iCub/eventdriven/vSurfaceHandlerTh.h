@@ -10,6 +10,7 @@
 #include <deque>
 #include <string>
 #include <map>
+#include <iomanip>
 
 namespace ev {
 
@@ -21,6 +22,9 @@ private:
     std::deque<yarp::os::Stamp> sq;
     yarp::os::Mutex m;
     yarp::os::Mutex dataready;
+
+    int count = 0;
+    int cnt = 0;
 
 public:
 
@@ -41,6 +45,7 @@ public:
 
     void onRead(ev::vBottle &inputbottle)
     {
+        count++;
 
         //make a new vQueue
         m.lock();
@@ -51,6 +56,13 @@ public:
         m.unlock();
         //and decode the data
         inputbottle.addtoendof<ev::AddressEvent>(*(qq.back()));
+
+        if (count == 100){
+            std::cout << qq.size() << " " << cnt%2 << " " << std::setprecision(15) << yarp::os::Time::now() << std::endl;
+            count = 0;
+            cnt++;
+        }
+
         dataready.unlock();
     }
 
