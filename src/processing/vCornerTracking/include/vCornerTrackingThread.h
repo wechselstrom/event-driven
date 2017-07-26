@@ -55,6 +55,7 @@ private:
 //    double t2;
     yarp::os::Stamp yarpstamp;
 
+
     //parameters
     unsigned int height;
     unsigned int width;

@@ -23,13 +23,18 @@ private:
     yarp::os::Mutex m;
     yarp::os::Mutex dataready;
 
-    int count = 0;
-    int cnt = 0;
+//    int count = 0;
+//    int cnt = 0;
+
+    unsigned int delay_nv;
+    long unsigned int delay_t;
 
 public:
 
     queueAllocator()
     {
+        delay_nv = 0;
+        delay_t = 0;
         useCallback();
         setStrict();
     }
@@ -45,7 +50,7 @@ public:
 
     void onRead(ev::vBottle &inputbottle)
     {
-        count++;
+//        count++;
 
         //make a new vQueue
         m.lock();
@@ -57,11 +62,16 @@ public:
         //and decode the data
         inputbottle.addtoendof<ev::AddressEvent>(*(qq.back()));
 
-        if (count == 100){
-            std::cout << qq.size() << " " << cnt%2 << " " << std::setprecision(15) << yarp::os::Time::now() << std::endl;
-            count = 0;
-            cnt++;
-        }
+        delay_nv += qq.back()->size();
+        int dt = qq.back()->back()->stamp - qq.back()->front()->stamp;
+        if(dt < 0) dt += vtsHelper::max_stamp;
+        delay_t += dt;
+
+//        if (count == 100){
+//            std::cout << qq.size() << " " << cnt%2 << " " << std::setprecision(15) << yarp::os::Time::now() << std::endl;
+//            count = 0;
+//            cnt++;
+//        }
 
         dataready.unlock();
     }
@@ -81,6 +91,12 @@ public:
     unsigned int scrapQ()
     {
         m.lock();
+
+        delay_nv -= qq.front()->size();
+        int dt = qq.front()->back()->stamp - qq.front()->front()->stamp;
+        if(dt < 0) dt += vtsHelper::max_stamp;
+        delay_t -= dt;
+
         delete qq.front();
         qq.pop_front();
         sq.pop_front();
@@ -91,6 +107,16 @@ public:
     void releaseDataLock()
     {
         dataready.unlock();
+    }
+
+    unsigned int queryDelayN()
+    {
+        return delay_nv;
+    }
+
+    double queryDelayT()
+    {
+        return delay_t * vtsHelper::tsscaler;
     }
 
 };

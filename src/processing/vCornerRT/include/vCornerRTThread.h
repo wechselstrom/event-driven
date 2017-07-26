@@ -123,7 +123,6 @@ private:
     double t2;
     yarp::os::Stamp yarpstamp;
 
-    int qsize;
     int k;
 
     //parameters
