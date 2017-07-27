@@ -166,6 +166,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
    // tempT = yarp::os::Time::now();
     vQueue q = inputBottle.get<AE>();
    // obsTy += yarp::os::Time::now() - tempT;
+    static double maxlikelihood = 0;
 
     for(ev::vQueue::iterator qi = q.begin(); qi != q.end(); qi++) {
 
@@ -177,21 +178,24 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
 
         if((*qi)->getChannel() != camera) continue;
 
-        //if(v->x < avgx - avgr *2.0 || v->x > avgx + avgr * 2.0 || v->y < avgy - avgr*2.0 || v->y > avgy + avgr*2.0) continue;
+        //if(v->x < avgx - avgr *1.5 || v->x > avgx + avgr * 1.5 || v->y < avgy - avgr*1.5 || v->y > avgy + avgr*1.5) continue;
 
         tempT = yarp::os::Time::now();
         for(int i = 0; i < nparticles; i++)
             updatedvs = std::max(indexedlist[i].incrementalLikelihood(v->x, v->y), updatedvs);
         obsTy += yarp::os::Time::now() - tempT;
 
-        if((double)updatedvs < 4) continue;
-
+        if((double)updatedvs < 16) continue;
 
         tempT = yarp::os::Time::now();
         //NORMALISE
+        //double decay = 1.0 - ((double)updatedvs / 64.0);
+        double decay = 0.99; //exp((double)updatedvs / -32.0);
+        //if(decay < 0.5) decay = 0.5;
+        //decay = 0.99;
         double normval = 0.0;
         for(int i = 0; i < nparticles; i++) {
-            indexedlist[i].concludeLikelihood();
+            indexedlist[i].concludeLikelihood(decay);
             normval += indexedlist[i].getw();
         }
         for(int i = 0; i < nparticles; i++)
@@ -203,6 +207,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
         avgx = 0;
         avgy = 0;
         avgr = 0;
+        maxlikelihood = 0;
 
         for(int i = 0; i < nparticles; i ++) {
             double w = indexedlist[i].getw();
@@ -211,9 +216,8 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
             avgx += indexedlist[i].getx() * w;
             avgy += indexedlist[i].gety() * w;
             avgr += indexedlist[i].getr() * w;
-
+            maxlikelihood = std::max(maxlikelihood, indexedlist[i].getl());
         }
-        resTy += yarp::os::Time::now() - tempT;
 
         //RESAMPLE
         if(!adaptive || pwsumsq * nparticles > 2.0) {
@@ -233,6 +237,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
                 }
             }
         }
+        resTy += yarp::os::Time::now() - tempT;
 
 
         tempT = yarp::os::Time::now();
@@ -250,18 +255,20 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
 
     static int delay1 = 0;
     const static int delayc1 = 5;
-    delay1++;
-    if(scopeOut.getOutputCount() && delay1 > delayc1) {
+    if(scopeOut.getOutputCount() && ++delay1 >= delayc1) {
         delay1 = 0;
+
         yarp::os::Bottle &sob = scopeOut.prepare();
         sob.clear();
 
         //double dt = q.back()->stamp - q.front()->stamp;
         //if(dt < 0) dt += ev::vtsHelper::max_stamp;
-        sob.addDouble(obsTv * vtsHelper::tsscaler / delayc1);
-        sob.addDouble(obsTy / delayc1);
-        sob.addDouble(resTy / delayc1);
-        sob.addDouble(predTy / delayc1);
+        sob.addDouble(obsTv * vtsHelper::tsscaler / delayc1); //actual time passed
+        //sob.addDouble(obsTy / delayc1); //time taken for processing events
+        sob.addDouble(maxlikelihood);
+        sob.addDouble(delayc1 / (resTy + predTy + obsTy)); // actual update rate
+        sob.addDouble(delayc1 / (obsTv * vtsHelper::tsscaler)); // required update rate
+
         obsTv = 0;
         obsTy = 0;
         resTy = 0;
@@ -272,7 +279,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
 
     static int delay2 = 0;
     delay2++;
-    if(vBottleOut.getOutputCount() && delay2 > 5) {
+    if(vBottleOut.getOutputCount() && delay2 >= 1) {
         delay2 = 0;
         ev::vBottle &eventsout = vBottleOut.prepare();
         eventsout.clear();

@@ -103,15 +103,27 @@ public:
                 //likelihood--;
                 angdist[a] = 0;
                 //negdist[a] = 1;
-                nupdates++;
+                //nupdates++;
             }
 
         }
+
+        static int delayer = 0;
+        if(id == 0 && delayer++ >= 2000) {
+            delayer = 0;
+            for(int i = 0; i < angbuckets; i++) {
+                if(angdist[i] > 0.5) std::cout << "1";
+                else std::cout << "0";
+            }
+
+            std::cout << std::endl;
+        }
+
         return nupdates;
 
     }
 
-    void concludeLikelihood();
+    void concludeLikelihood(double decay);
 
     void updateWeightSync(double normval);
 
