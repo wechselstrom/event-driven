@@ -41,6 +41,9 @@ bool vCornerModule::configure(yarp::os::ResourceFinder &rf)
     double thresh = rf.check("thresh", yarp::os::Value(8.0)).asDouble();
     bool callback = rf.check("callback", yarp::os::Value(true)).asBool();
     int nthreads = rf.check("nthreads", yarp::os::Value(2)).asInt();
+    bool delayV = rf.check("delayV", yarp::os::Value(true)).asBool();
+    bool delayT = rf.check("delayT", yarp::os::Value(false)).asBool();
+    bool allToSurface = rf.check("allToSurf", yarp::os::Value(true)).asBool();
 
     /* create the thread and pass pointers to the module parameters */
     if(callback) {
@@ -50,7 +53,9 @@ bool vCornerModule::configure(yarp::os::ResourceFinder &rf)
     }
     else {
         cornercallback = 0;
-        cornerthread = new vCornerThread(height, width, moduleName, strict, qlen, temporalsize, windowRad, sobelsize, sigma, thresh, nthreads);
+        cornerthread = new vCornerThread(height, width, moduleName, strict, qlen, temporalsize,
+                                         windowRad, sobelsize, sigma, thresh, nthreads,
+                                         delayV, delayT, allToSurface);
         if(!cornerthread->start())
             return false;
     }

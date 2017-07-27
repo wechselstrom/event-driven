@@ -137,6 +137,9 @@ private:
     double sigma;
     double thresh;
     int nthreads;
+    bool delayV;
+    bool delayT;
+    bool addToSurface;
 
     filters convolution;
     bool detectcorner(ev::vQueue patch, int x, int y);
@@ -144,7 +147,8 @@ private:
 public:
 
     vCornerThread(unsigned int height, unsigned int width, std::string name, bool strict, int qlen,
-                  double temporalsize, int windowRad, int sobelsize, double sigma, double thresh, int nthreads);
+                  double temporalsize, int windowRad, int sobelsize, double sigma, double thresh,
+                  int nthreads, bool delayV, bool delayT, bool addToSurface);
     bool threadInit();
     bool open(std::string portname);
     void onStop();
