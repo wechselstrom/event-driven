@@ -242,8 +242,8 @@ void clusterDraw::draw(cv::Mat &image, const vQueue &eSet, int vTime)
             std::cout << "l_min error: shape distorted" << std::endl;
         }
 
-        double a = sqrt(std::fabs(l_max)) * 5;
-        double b = sqrt(std::fabs(l_min)) * 5;
+        //double a = sqrt(std::fabs(l_max)) * 5;
+        //double b = sqrt(std::fabs(l_min)) * 5;
         double alpha = 0.5*atan2f(2*sig_xy_, sig_y2_ - sig_x2_);
 
         alpha = alpha * 180 / M_PI; //convert to degrees for openCV ellipse function
@@ -486,11 +486,11 @@ void isoDraw::pttr(int &x, int &y, int &z) {
 
 void isoDraw::initialise()
 {
-    maxdt = 1; //just to initialise (but we don't use here)
+    maxdt = vtsHelper::max_stamp / 2.0; //just to initialise (but we don't use here)
     Zlimit = Xlimit * 3;
 
     thetaX = 20 * 3.14 / 180.0;  //PITCH
-    thetaY = 40 * 3.14 / 180.0; //YAW
+    thetaY = 40 * 3.14 / 180.0;  //YAW
 
     CY = cos(thetaY); SY = sin(thetaY);
     CX = cos(thetaX); SX = sin(thetaX);
@@ -526,6 +526,7 @@ void isoDraw::initialise()
 
     cv::Scalar invertedtextc = CV_RGB(125, 125, 125);
     cv::Vec3b invertedaxisc = cv::Vec3b(255, 255, 255);
+    cv::Vec3b invertedframec = cv::Vec3b(125, 125, 125);
 
     for(int xi = 0; xi < Xlimit; xi++) {
         x = xi; y = 0; z = 0; pttr(x, y, z);
@@ -579,6 +580,35 @@ void isoDraw::initialise()
         baseimage.at<cv::Vec3b>(y, x) = invertedaxisc;
     }
 
+    for(tsi = vtsHelper::vtsscaler / 10.0; tsi < vtsHelper::max_stamp / 2; tsi += vtsHelper::vtsscaler / 10.0) {
+
+        int zc = ((double)tsi / maxdt) * Zlimit + 0.5;
+
+        for(int xi = 0; xi < Xlimit; xi++) {
+            x = xi; y = 0; z = zc; pttr(x, y, z);
+            y += imageyshift; x += imagexshift;
+            baseimage.at<cv::Vec3b>(y, x) = invertedframec;
+            x = xi; y = Ylimit; z = zc; pttr(x, y, z);
+            y += imageyshift; x += imagexshift;
+            baseimage.at<cv::Vec3b>(y, x) = invertedframec;
+        }
+
+        for(int yi = 0; yi <= Ylimit; yi++) {
+            x = 0; y = yi; z = zc; pttr(x, y, z);
+            y += imageyshift; x += imagexshift;
+            baseimage.at<cv::Vec3b>(y, x) = invertedframec;
+            x = Xlimit; y = yi; z = zc; pttr(x, y, z);
+            y += imageyshift; x += imagexshift;
+            baseimage.at<cv::Vec3b>(y, x) = invertedframec;
+
+        }
+
+    }
+
+    yInfo() << "Finished setting up ISO draw";
+
+
+
 }
 
 void isoDraw::draw(cv::Mat &image, const ev::vQueue &eSet, int vTime)
@@ -595,13 +625,16 @@ void isoDraw::draw(cv::Mat &image, const ev::vQueue &eSet, int vTime)
 
     int cts = eSet.back()->stamp;
     int dt = cts - eSet.front()->stamp;
-    if(dt < 0) dt += ev::vtsHelper::maxStamp();
+    if(dt < 0) dt += ev::vtsHelper::max_stamp;
     maxdt = std::max(maxdt, dt);
 
-    ev::vQueue::const_iterator qi;
-    for(qi = eSet.begin(); qi != eSet.end(); qi++) {
+    int skip = 1 + eSet.size() / 50000;
 
-        auto aep = is_event<AE>(*qi);
+    //ev::vQueue::const_iterator qi;
+    //for(qi = eSet.begin(); qi != eSet.end(); qi += skip) {
+    for(int i = eSet.size() - 1; i >= 0; i -= skip) {
+
+        auto aep = is_event<AE>(eSet[i]);
 
         //transform values
         int dt = cts - aep->stamp;

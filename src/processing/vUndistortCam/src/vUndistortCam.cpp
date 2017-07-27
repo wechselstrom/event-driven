@@ -31,11 +31,11 @@ bool vUndistortModule::configure(yarp::os::ResourceFinder &rf)
     bool strictio = rf.check("strict");
 
     //set sensor size
-    int height = rf.check("sensorHeight",
-                          yarp::os::Value(128),
+    int height = rf.check("height",
+                          yarp::os::Value(240),
                           "camera resolution height").asInt();
-    int width = rf.check("sensorWidth",
-                         yarp::os::Value(128),
+    int width = rf.check("width",
+                         yarp::os::Value(304),
                          "camera resolution width").asInt();
 
     eventBottleManager.setSensorSize(height, width);
@@ -108,8 +108,8 @@ EventBottleManager::EventBottleManager()
     leftMap.deallocate();
     rightMap.deallocate();
 
-    sensorHeight = 128;
-    sensorWidth = 128;
+    sensorHeight = 240;
+    sensorWidth = 304;
 
     truncate = true;
     strictio = false;
@@ -124,8 +124,8 @@ bool EventBottleManager::open(const std::string &name, bool strictio)
     this->strictio = strictio;
     this->useCallback();
 
-    yarp::os::BufferedPort<ev::vBottle>::open("/" + name + "/vBottle:i");
-    outPort.open("/" + name + "/vBottle:o");
+    yarp::os::BufferedPort<ev::vBottle>::open(name + "/vBottle:i");
+    outPort.open(name + "/vBottle:o");
     return true;
 }
 
@@ -195,7 +195,7 @@ void EventBottleManager::setCamParams(const yarp::os::Bottle &left,
         *(maps[i]) = cv::Mat(sensorHeight, sensorWidth, CV_32SC2);
         for(unsigned int y = 0; y < sensorHeight; y++) {
             for(unsigned int x = 0; x < sensorWidth; x++) {
-                maps[i]->at<cv::Vec2i>(x, y) =
+                maps[i]->at<cv::Vec2i>(y, x) =
                         mappoints.at<cv::Vec2f>(y * sensorWidth + x);
 //                std::cout << "[" << x << ", " << y << "] -> " <<
 //                             maps[i]->at<cv::Vec2i>(x, y) << std::endl;
@@ -226,6 +226,12 @@ void EventBottleManager::onRead(ev::vBottle &bot)
     //create event queue
     vQueue q = bot.get<AE>();
 
+    if(!q.size()) {
+        outPort.unprepare();
+        return;
+    }
+
+
     for(ev::vQueue::iterator qi = q.begin(); qi != q.end(); qi++)
     {
 
@@ -233,9 +239,9 @@ void EventBottleManager::onRead(ev::vBottle &bot)
 
         cv::Vec2i mapPix;
         if(!v->getChannel())
-             mapPix = leftMap.at<cv::Vec2i>(v->x, v->y);
+             mapPix = leftMap.at<cv::Vec2i>(v->y, v->x);
         else
-            mapPix = rightMap.at<cv::Vec2i>(v->x, v->y);
+            mapPix = rightMap.at<cv::Vec2i>(v->y, v->x);
 
         bool withinSensorBounds = mapPix[0] >= 0.0 && mapPix[0] < (double)sensorWidth
                 && mapPix[1] >= 0.0 && mapPix[1] < (double)sensorHeight;
@@ -247,9 +253,11 @@ void EventBottleManager::onRead(ev::vBottle &bot)
 
 
     }
-    //send on the processed events
-    if(strictio) outPort.writeStrict();
-    else outPort.write();
+
+    if(outBottle.size())
+        outPort.write(strictio);
+    else
+        outPort.unprepare();
 
 }
 

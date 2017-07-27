@@ -23,95 +23,114 @@ class vParticle
 {
 private:
 
+    //static parameters
+    int id;
     double minlikelihood;
     double inlierParameter;
     double outlierParameter;
     double variance;
+    int angbuckets;
+    preComputedBins *pcb;
 
-    //id
-    int id;
-
-    //weight
-    double weight;
+    //temporary parameters (on update cycle)
     double likelihood;
+
+    double predlike;
     int    outlierCount;
     int    inlierCount;
     double maxtw;
-    int angbuckets;
     yarp::sig::Vector angdist;
     yarp::sig::Vector negdist;
-    preComputedBins *pcb;
 
-
-    //state - this should be a yarp::sig::vector
+    //state and weight
     double x;
     double y;
     double r;
     double tw;
+    double weight;
 
     //timing
     unsigned long int stamp;
-    unsigned long int nextUpdate;
-    unsigned int fixedrate;
 
 public:
 
+    int score;
+
+
     vParticle();
+    vParticle& operator=(const vParticle &rhs);
 
-    void setid(int id) { this->id = id; }
-    int getid() { return id; }
+    //initialise etc.
+    void initialiseParameters(int id, double minLikelihood, double outlierParam, double inlierParam, double variance, int angbuckets);
+    void attachPCB(preComputedBins *pcb) { this->pcb = pcb; }
 
-    void initState(double x, double y, double r,
-                   double vx, double vy, double vr);
-    void initState(double x, double y, double r, double tw);
+    void initialiseState(double x, double y, double r, double tw);
+    void randomise(int x, int y, int r, int tw);
 
-
-    void initTiming(unsigned long int stamp);
-    void initWeight(double weight);
-
-    unsigned int getTemporalWindow();
-
-    void setPCB(preComputedBins *pcb) { this->pcb = pcb; }
-
-    void setRate(unsigned int rate) { fixedrate = rate; }
-    void setMinLikelihood(double minlikelihood) { this->minlikelihood = minlikelihood; }
-    void setOutlierParameter(double value) { this->outlierParameter = value; }
-    void setInlierParameter(double value) {this->inlierParameter = value; }
-    void setVariance(double value) { this->variance = value; }
-
-    void resample(double w, unsigned long int t, int x, int y, int r, int tw);
-    void resample(const vParticle &seeder, double w, unsigned long int t);
+    void resetStamp(unsigned long int value);
+    void resetWeight(double value);
+    void resetRadius(double value);
 
 
-    bool predict(unsigned long int stamp);
-    double calcLikelihood(ev::vQueue &events, int nparticles);
+    //update
+    void predict(unsigned long int stamp);
+
     void initLikelihood();
-    int incrementalLikelihood(int vx, int vy, int dt);
+    inline void incrementalLikelihood(int vx, int vy, int dt)
+    {
+        double dx = vx - x;
+        double dy = vy - y;
+//        int rdx, rdy;
+//        if(dx > 0) rdx = dx + 0.5;
+//        else rdx = dx - 0.5;
+//        if(dy > 0) rdy = dy + 0.5;
+//        else rdy = dy - 0.5;
+
+        //double sqrd = pcb->queryDistance(rdy, rdx) - r;
+        double sqrd = sqrt(pow(dx, 2.0) + pow(dy, 2.0)) - r;
+
+        if(sqrd > -inlierParameter && sqrd < inlierParameter) {
+
+            //int a = pcb->queryBinNumber(rdy, rdx);
+            int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
+            if(!angdist[a]) {
+                inlierCount++;
+                angdist[a] = dt + 1;
+            }
+
+        } else if(sqrd > -outlierParameter && sqrd < 0) { //-3 < X < -5
+
+            //int a = pcb->queryBinNumber(rdy, rdx);
+            int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
+            if(!negdist[a]) {
+                outlierCount++;
+                negdist[a] = 1;
+            }
+
+        }
+
+        score = inlierCount - outlierCount;
+        if(score >= likelihood) {
+            likelihood = score;
+            maxtw = dt;
+        }
+
+        //return score;
+
+    }
     void concludeLikelihood();
 
-
-    void updateWeight(double l, double n);
-    void updateWeight2(double likelihood, double pwsumsq);
     void updateWeightSync(double normval);
 
-    double dtavg;
-    double dtvar;
-
-    double getx() { return x; }
-    double gety() { return y; }
-    double getr() { return r; }
-    double getw() { return weight; }
-    double getl() { return likelihood; }
+    //get
+    int    getid() { return id; }
+    double getx()  { return x; }
+    double gety()  { return y; }
+    double getr()  { return r; }
+    double getw()  { return weight; }
+    double getl()  { return likelihood; }
     double gettw() { return tw; }
-    unsigned long getUpdateTime() { return nextUpdate; }
-    unsigned long getStamp() { return stamp; }
-    void setr(double value) { this->r = value; }
-    bool needsUpdating(unsigned long int stamp);
 
-    bool operator<(const vParticle &p) const
-        { return this->nextUpdate > p.nextUpdate; }
-    bool operator>(const vParticle &p) const
-        { return this->nextUpdate < p.nextUpdate; }
 
 };
 

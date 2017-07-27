@@ -32,6 +32,7 @@
 #include <fstream>
 #include <math.h>
 #include <vCornerRTCallback.h>
+#include <iomanip>
 
 class vCornerCallback : public yarp::os::BufferedPort<ev::vBottle>
 {

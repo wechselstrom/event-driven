@@ -103,10 +103,10 @@ bool vParticleModule::configure(yarp::os::ResourceFinder &rf)
     } else {
 
         /* USE REAL-TIME THREAD */
-        eventhandler.configure(height, width, 0.05);
+        eventhandler.configure(height, width, 0.15);
 
         if(leftParticles) {
-            leftThread = new particleProcessor(height, width, &eventhandler, &outport);
+            leftThread = new particleProcessor(getName(), height, width, &eventhandler, &outport);
             leftThread->setComputeOptions(0, nthread, useroi);
             leftThread->setFilterParameters(leftParticles, nRandResample,
                                                 adaptivesampling, particleVariance);
@@ -121,7 +121,7 @@ bool vParticleModule::configure(yarp::os::ResourceFinder &rf)
         }
 
         if(rightParticles) {
-            rightThread = new particleProcessor(height, width, &eventhandler, &outport);
+            rightThread = new particleProcessor(getName(), height, width, &eventhandler, &outport);
             rightThread->setComputeOptions(1, nthread, useroi);
             rightThread->setFilterParameters(rightParticles, nRandResample,
                                                 adaptivesampling, particleVariance);
@@ -135,6 +135,7 @@ bool vParticleModule::configure(yarp::os::ResourceFinder &rf)
                 return false;
         }
 
+        outport.setRate(10);
         if(!outport.open(getName() + "/vBottle:o"))
             return false;
         if(!outport.start())

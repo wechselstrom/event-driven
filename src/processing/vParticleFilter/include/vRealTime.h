@@ -50,8 +50,8 @@ private:
     double pytime;
     int rbound_min;
     int rbound_max;
+    std::string name;
 
-    yarp::os::BufferedPort<ev::vBottle> vBottleOut;
     yarp::os::BufferedPort<yarp::sig::ImageOf <yarp::sig::PixelBgr> > debugOut;
     yarp::os::BufferedPort<yarp::os::Bottle> scopeOut;
     ev::vtsHelper unwrap;
@@ -61,7 +61,6 @@ private:
     double avgr;
     double avgtw;
     double maxtw;
-    double maxlikelihood;
     double pwsumsq;
     double particleVariance;
     int rate;
@@ -96,7 +95,7 @@ public:
         seedx = x; seedy = y; seedr = r;
     }
 
-    particleProcessor(unsigned int height, unsigned int width, hSurfThread* eventhandler, collectorPort* eventsender);
+    particleProcessor(std::string name, unsigned int height, unsigned int width, hSurfThread* eventhandler, collectorPort* eventsender);
     bool threadInit();
     void run();
     void threadRelease();

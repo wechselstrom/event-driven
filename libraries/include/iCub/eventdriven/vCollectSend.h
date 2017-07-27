@@ -1,17 +1,30 @@
+/*
+ * Copyright (C) 2015 iCub Facility - Istituto Italiano di Tecnologia
+ * Author: arren.glover@iit.it
+ * Permission is granted to copy, distribute, and/or modify this program
+ * under the terms of the GNU General Public License, version 2 or any
+ * later version published by the Free Software Foundation.
+ *
+ * A copy of the license can be found at
+ * http://www.robotcub.org/icub/license/gpl.txt
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+ * Public License for more details
+*/
+
 #ifndef __VCOLLECTSEND__
 #define __VCOLLECTSEND__
 
 #include <iCub/eventdriven/vCodec.h>
 #include <iCub/eventdriven/vBottle.h>
-#include <iCub/eventdriven/vtsHelper.h>
 #include <yarp/os/all.h>
-#include <limits>
-#include <iomanip>
-
-typedef std::numeric_limits< double > dbl;
 
 namespace ev {
 
+/// \brief an output port that can safely accept events from multiple threads
+/// and sends them at a fixed output rate.
 class collectorPort : public yarp::os::RateThread
 {
 private:
@@ -20,19 +33,11 @@ private:
     yarp::os::BufferedPort<vBottle> sendPort;
     yarp::os::Mutex m;
     yarp::os::Stamp ystamp;
-//    double currystamp;
-//    double prevystamp;
-//    int prevstamp;
 
 
 
 public:
-    collectorPort() : RateThread(1.0) {
-
-//        prevstamp = 0;
-//        prevystamp = 0.0;
-
-    }
+    collectorPort() : RateThread(1.0) {}
 
     bool open(std::string name) {
 
@@ -43,13 +48,8 @@ public:
     void pushevent(event<> v, yarp::os::Stamp y) {
 
         m.lock();
-//        if((v->stamp - prevstamp) < 0)
-//            std::cout << prevstamp * vtsHelper::tsscaler << " " << v->stamp * vtsHelper::tsscaler << std::endl;
-//        prevstamp = v->stamp;
-
         filler.addEvent(v);
         ystamp = y;
-//        currystamp = ystamp.getTime();
         m.unlock();
 
     }
@@ -63,17 +63,13 @@ public:
             b = filler;
             filler.clear();
             sendPort.setEnvelope(ystamp);
-//            std::cout.precision( dbl::digits10 );
-//            std::cout << (currystamp - prevystamp) << std::endl;
-//            prevystamp = currystamp;
             m.unlock();
 
             sendPort.write();
 
         }
 
-//         if(!(currystamp - prevystamp))
-//             sendPort.write();
+
 
     }
 
