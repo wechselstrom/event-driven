@@ -23,9 +23,6 @@ private:
     yarp::os::Mutex m;
     yarp::os::Mutex dataready;
 
-//    int count = 0;
-//    int cnt = 0;
-
     unsigned int delay_nv;
     long unsigned int delay_t;
 
@@ -50,7 +47,6 @@ public:
 
     void onRead(ev::vBottle &inputbottle)
     {
-//        count++;
 
         //make a new vQueue
         m.lock();
@@ -66,12 +62,6 @@ public:
         int dt = qq.back()->back()->stamp - qq.back()->front()->stamp;
         if(dt < 0) dt += vtsHelper::max_stamp;
         delay_t += dt;
-
-//        if (count == 100){
-//            std::cout << qq.size() << " " << cnt%2 << " " << std::setprecision(15) << yarp::os::Time::now() << std::endl;
-//            count = 0;
-//            cnt++;
-//        }
 
         dataready.unlock();
     }
