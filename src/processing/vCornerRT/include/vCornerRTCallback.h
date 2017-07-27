@@ -70,6 +70,9 @@ private:
     double t1;
     double t2;
 
+    std::ofstream outfile;
+    ev::vtsHelper unwrapper;
+
     filters convolution;
     bool detectcorner(const ev::vQueue subsurf, int x, int y);
 
@@ -88,3 +91,4 @@ public:
 
 #endif
 //empty line to make gcc happy
+

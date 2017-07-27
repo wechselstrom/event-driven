@@ -83,6 +83,8 @@ bool vCornerCallback::open(const std::string moduleName, bool strictness)
     std::string debugPortName = "/" + moduleName + "/score:o";
     bool check3 = debugPort.open(debugPortName);
 
+    outfile.open("/home/vvasco/dev/egomotion/affine/testing data/corners.txt");
+
     return check1 && check2 && check3;
 
 }
@@ -94,6 +96,8 @@ void vCornerCallback::close()
     debugPort.close();
     outPort.close();
     yarp::os::BufferedPort<ev::vBottle>::close();
+
+    outfile.close();
 
     delete surfaceOfR;
     delete surfaceOnR;
@@ -118,7 +122,7 @@ void vCornerCallback::onRead(ev::vBottle &bot)
     /*prepare output vBottle*/
 //    ev::vBottle &outBottle = outPort.prepare();
 //    outBottle.clear();
-//    yarp::os::Stamp st;
+    yarp::os::Stamp st;
 //    this->getEnvelope(st); outPort.setEnvelope(st);
 
     ev::vBottle fillerbottle;
@@ -172,12 +176,20 @@ void vCornerCallback::onRead(ev::vBottle &bot)
             cSurf->getSurf(subsurf, windowRad);
             isc = detectcorner(subsurf, ae->x, ae->y);
 
+            this->getEnvelope(st);
+            outfile << ae->channel << " " << unwrapper(ae->stamp) << " " << ae->polarity << " "
+                    << ae->x << " " << ae->y << " " << std::setprecision(15) << st.getTime() << " ";
+
             //if it's a corner, add it to the output bottle
             if(isc) {
                 auto ce = make_event<LabelledAE>(ae);
                 ce->ID = 1;
                 fillerbottle.addEvent(ce);
+
+                outfile << ce->ID << std::endl;
             }
+            else
+                outfile << 0 << std::endl;
 
 //            //times it takes to process
 ////            cpudelay = 0.0;
@@ -238,3 +250,4 @@ bool vCornerCallback::detectcorner(const vQueue subsurf, int x, int y)
 }
 
 //empty line to make gcc happy
+
