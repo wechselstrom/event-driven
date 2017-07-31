@@ -68,6 +68,7 @@ private:
     double obsThresh;
     double obsInlier;
     double obsOutlier;
+    int templatebins;
 
     bool inbounds(vParticle &p);
 
@@ -75,8 +76,10 @@ public:
 
     vParticleReader();
     void initialise(unsigned int width , unsigned int height, unsigned int nParticles, unsigned int rate, double nRands, bool adaptive, double pVariance, int camera, bool useROI);
-    void setObservationParameters(double minLikelihood, double inlierPar, double outlierPar) {
-        obsThresh = minLikelihood; obsInlier = inlierPar; obsOutlier = outlierPar; }
+    void setObservationParameters(double minLikelihood, double inlierPar, double outlierPar, int templatebins)
+    {
+        obsThresh = minLikelihood; obsInlier = inlierPar; obsOutlier = outlierPar; this->templatebins = templatebins;
+    }
 
     void setSeed(int x, int y, int r)
     {

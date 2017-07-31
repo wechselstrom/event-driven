@@ -68,7 +68,7 @@ void vParticleReader::initialise(unsigned int width , unsigned int height,
 
     indexedlist.clear();
     for(int i = 0; i < nparticles; i++) {
-        p.initialiseParameters(i, obsThresh, obsOutlier, obsInlier, pVariance, 64);
+        p.initialiseParameters(i, obsThresh, obsOutlier, obsInlier, pVariance, templatebins);
 
         if(seedr)
             p.initialiseState(seedx, seedy, seedr);
@@ -142,6 +142,7 @@ bool vParticleReader::inbounds(vParticle &p)
         p.resetRadius(rbound_max);
         r = rbound_max;
     }
+    r = 0;
     if(p.getx() < -r || p.getx() > res.width + r)
         return false;
     if(p.gety() < -r || p.gety() > res.height + r)
@@ -166,7 +167,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
    // tempT = yarp::os::Time::now();
     vQueue q = inputBottle.get<AE>();
    // obsTy += yarp::os::Time::now() - tempT;
-    static double maxlikelihood = 0;
+    static double maxlikelihood = 0, avglikelihood = 0;
 
     for(ev::vQueue::iterator qi = q.begin(); qi != q.end(); qi++) {
 
@@ -185,7 +186,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
             updatedvs = std::max(indexedlist[i].incrementalLikelihood(v->x, v->y), updatedvs);
         obsTy += yarp::os::Time::now() - tempT;
 
-        if((double)updatedvs < 16) continue;
+        if((double)updatedvs < templatebins / 2.0) continue;
 
         tempT = yarp::os::Time::now();
         //NORMALISE
@@ -208,6 +209,8 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
         avgy = 0;
         avgr = 0;
         maxlikelihood = 0;
+        avglikelihood = 0;
+        int max_index = 0;
 
         for(int i = 0; i < nparticles; i ++) {
             double w = indexedlist[i].getw();
@@ -216,8 +219,20 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
             avgx += indexedlist[i].getx() * w;
             avgy += indexedlist[i].gety() * w;
             avgr += indexedlist[i].getr() * w;
-            maxlikelihood = std::max(maxlikelihood, indexedlist[i].getl());
+            if(indexedlist[i].getl() > maxlikelihood) {
+                maxlikelihood = indexedlist[i].getl();
+                max_index = i;
+            }
+            avglikelihood += indexedlist[i].getl();
         }
+        avglikelihood /= nparticles;
+
+        static int cc = 100;
+        if(++cc >= 100) {
+            indexedlist[max_index].printL();
+            cc = 0;
+        }
+
 
         //RESAMPLE
         if(!adaptive || pwsumsq * nparticles > 2.0) {
@@ -226,7 +241,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
                 //if(indexedlist[i].getw() > 0.5 / nparticles) continue;
                 double rn = this->nRandomise * (double)rand() / RAND_MAX;
                 if(rn > 1.0)
-                    indexedlist[i].randomise(res.width, res.height, rbound_max);
+                    indexedlist[i].initialiseState(res.width/2.0, res.height/2.0, (rbound_max + rbound_min)/2.0);
                 else {
                     double accum = 0.0; int j = 0;
                     for(j = 0; j < nparticles; j++) {
@@ -243,7 +258,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
         tempT = yarp::os::Time::now();
         //PREDICT
         for(int i = 0; i < nparticles; i++) {
-            indexedlist[i].predict(4.0 * updatedvs / 64.0);
+            indexedlist[i].predict(2.0 * updatedvs / (double)templatebins);
             if(!inbounds(indexedlist[i])) {
                 indexedlist[i].randomise(res.width, res.height, rbound_max);
             }
@@ -251,6 +266,47 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
         predTy += yarp::os::Time::now() - tempT;
 
         updatedvs = 0;
+    }
+
+    static int delay2 = 0;
+    if(vBottleOut.getOutputCount() && ++delay2 >= 1) {
+        delay2 = 0;
+        ev::vBottle &eventsout = vBottleOut.prepare();
+        eventsout.clear();
+//        auto ceg = make_event<GaussianAE>();
+//        ceg->stamp = q.back()->stamp;
+//        ceg->setChannel(camera);
+//        ceg->x = avgx;
+//        ceg->y = avgy;
+//        ceg->sigx = avgr;
+//        ceg->sigy = avgr;
+//        ceg->sigxy = obsInlier;
+//        if(maxlikelihood > templatebins / 2.0)
+//            ceg->polarity = 1;
+//        else
+//            ceg->polarity = 0;
+//        //std::cout << ceg->getContent().toString() << std::endl;
+//        eventsout.addEvent(ceg);
+        for(int i = 0; i < nparticles; i++) {
+            auto ceg = make_event<GaussianAE>();
+            ceg->stamp = q.back()->stamp;
+            ceg->setChannel(camera);
+            ceg->x = indexedlist[i].getx();
+            ceg->y = indexedlist[i].gety();
+            ceg->sigx = indexedlist[i].getr();
+            ceg->sigy = indexedlist[i].getr();
+            ceg->sigxy = obsInlier;
+            ceg->ID = i;
+            if(indexedlist[i].getl() > templatebins * 0.75)
+                ceg->polarity = 1;
+            else
+                ceg->polarity = 0;
+            //std::cout << ceg->getContent().toString() << std::endl;
+            eventsout.addEvent(ceg);
+        }
+        vBottleOut.setEnvelope(st);
+        vBottleOut.write();
+
     }
 
     static int delay1 = 0;
@@ -265,6 +321,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
         //if(dt < 0) dt += ev::vtsHelper::max_stamp;
         sob.addDouble(obsTv * vtsHelper::tsscaler / delayc1); //actual time passed
         //sob.addDouble(obsTy / delayc1); //time taken for processing events
+        //sob.addDouble(avglikelihood);
         sob.addDouble(maxlikelihood);
         sob.addDouble(delayc1 / (resTy + predTy + obsTy)); // actual update rate
         sob.addDouble(delayc1 / (obsTv * vtsHelper::tsscaler)); // required update rate
@@ -277,27 +334,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
         scopeOut.write();
     }
 
-    static int delay2 = 0;
-    delay2++;
-    if(vBottleOut.getOutputCount() && delay2 >= 1) {
-        delay2 = 0;
-        ev::vBottle &eventsout = vBottleOut.prepare();
-        eventsout.clear();
-        auto ceg = make_event<GaussianAE>();
-        ceg->stamp = q.back()->stamp;
-        ceg->setChannel(camera);
-        ceg->x = avgx;
-        ceg->y = avgy;
-        ceg->sigx = avgr;
-        ceg->sigy = avgr;
-        ceg->sigxy = 0;
-        ceg->polarity = 1;
-        //std::cout << ceg->getContent().toString() << std::endl;
-        eventsout.addEvent(ceg);
-        vBottleOut.setEnvelope(st);
-        vBottleOut.write();
 
-    }
 
     if(resultOut.getOutputCount()) {
         yarp::os::Bottle &trackBottle = resultOut.prepare();

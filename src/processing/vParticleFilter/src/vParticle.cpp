@@ -141,8 +141,8 @@ vParticle::vParticle()
     outlierCount = 0;
     pcb = 0;
     angbuckets = 128;
-    angdist.resize(angbuckets);
-    negdist.resize(angbuckets);
+    angdist.resize(angbuckets, 0.0);
+    negdist.resize(angbuckets, 0.0);
     nupdates = 0;
 }
 
@@ -173,8 +173,10 @@ vParticle& vParticle::operator=(const vParticle &rhs)
     //angdist.resize(angbuckets, lt);
     //for(unsigned int i = 0; i < angbuckets; i++)
      //   angdist[i] = lt;
-    for(unsigned int i = 0; i < angbuckets; i++)
+    for(unsigned int i = 0; i < angbuckets; i++) {
         angdist[i] = rhs.angdist[i];
+        //negdist[i] = rhs.negdist[i];
+    }
 
     //this->angdist.zero();
     //this->negdist = rhs.negdist;
@@ -190,7 +192,7 @@ void vParticle::initialiseState(double x, double y, double r)
     this->r = r;
 
     for(int i = 0; i < angbuckets; i++) {
-        angdist[i] = 0;
+        angdist[i] = 0.0;
         //negdist[i] = 0;
     }
     likelihood = 1.0;
@@ -236,12 +238,19 @@ void vParticle::predict(double sigma)
 //    predlike = px * py * pr;
 
     //predlike = fabs(gx) + fabx(gy) + fabs(gr);
-    predlike = exp((gx *gx + gy*gy + gr*gr) * -0.5 * 0.005);
-    //predlike = 1.0 - sqrt(gx*gx + gy*gy + gr*gr) / 304;
+    //predlike = exp((gx *gx + gy*gy + gr*gr) * -0.5 * 0.04);
+    predlike = 1.0 - sqrt(gx*gx + gy*gy + gr*gr) / 10;
+    if(predlike < 0) predlike = 0;
+
+    for(int i = 0; i < angbuckets; i++) {
+        //angdist[i] *= predlike;
+        //negdist[i] *= predlike;
+    }
 
     x += gx;
     y += gy;
     r += gr;
+
 
 //    x = generateGaussianNoise(x, variance);
 //    y = generateGaussianNoise(y, variance);
@@ -274,7 +283,10 @@ void vParticle::concludeLikelihood(double decay)
     nupdates = 0;
     likelihood = 0;
     for(int i = 0; i < angbuckets; i++) {
-        likelihood += angdist[i];
+//        if(negdist[i] > angdist[i])
+//            likelihood += angdist[i] / negdist[i];
+//        else
+            likelihood += angdist[i];
         //negdist[i] = 0;
     }
 
@@ -284,9 +296,10 @@ void vParticle::concludeLikelihood(double decay)
         weight = minlikelihood * weight;
 
 
-    for(int i = 0; i < angbuckets; i++) {
-        angdist[i] *= predlike;
-    }
+//    for(int i = 0; i < angbuckets; i++) {
+//        angdist[i] *= predlike;
+//        //negdist[i] *= predlike;
+//    }
 
     //negdist.resize(angbuckets, 0.0);
 

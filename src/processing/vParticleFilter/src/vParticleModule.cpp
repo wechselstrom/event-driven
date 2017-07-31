@@ -76,6 +76,7 @@ bool vParticleModule::configure(yarp::os::ResourceFinder &rf)
     double inlierParameter = rf.check("obsinlier", yarp::os::Value(1.5)).asDouble();
     double outlierParameter = rf.check("obsoutlier", yarp::os::Value(3.0)).asDouble();
     double particleVariance = rf.check("variance", yarp::os::Value(0.5)).asDouble();
+    int templatebins = rf.check("bins", yarp::os::Value(64)).asInt();
 
     particleCallback = 0;
     //leftThread = 0;
@@ -86,7 +87,7 @@ bool vParticleModule::configure(yarp::os::ResourceFinder &rf)
         /* USE FULL PROCESS IN CALLBACK */
         particleCallback = new vParticleReader;
         particleCallback->setObservationParameters(minlikelihood, inlierParameter,
-                                                 outlierParameter);
+                                                 outlierParameter, templatebins);
         if(seed && seed->size() == 3) {
             std::cout << "Using initial seed location: " << seed->toString() << std::endl;
             particleCallback->setSeed(seed->get(0).asDouble(), seed->get(1).asDouble(), seed->get(2).asDouble());
