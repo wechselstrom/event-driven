@@ -56,6 +56,8 @@ private:
 
 public:
 
+
+
     int score;
 
 
@@ -89,7 +91,7 @@ public:
 
 
     //update
-    void predict(double sigma = 0);
+    void predict(double sigma = -1);
 
     void initLikelihood();
 
@@ -137,13 +139,13 @@ public:
     void updateWeightSync(double normval);
 
     //get
-    int    getid() { return id; }
-    double getx()  { return x; }
-    double gety()  { return y; }
-    double getr()  { return r; }
-    double getw()  { return weight; }
-    double getl()  { return likelihood; }
-    double gettw() { return tw; }
+    inline int    getid() { return id; }
+    inline double getx()  { return x; }
+    inline double gety()  { return y; }
+    inline double getr()  { return r; }
+    inline double getw()  { return weight; }
+    inline double getl()  { return likelihood; }
+    inline double gettw() { return tw; }
 
 
 };

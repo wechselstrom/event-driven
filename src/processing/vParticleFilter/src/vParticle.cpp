@@ -5,6 +5,142 @@
 
 using ev::event;
 using ev::AddressEvent;
+double generateGaussianNoise(double mu, double sigma);
+
+/*////////////////////////////////////////////////////////////////////////////*/
+//VPARTICLETRACKER
+/*////////////////////////////////////////////////////////////////////////////*/
+
+vParticle::vParticle()
+{
+    weight = 1.0;
+    likelihood = 1.0;
+    predlike = 1.0;
+    minlikelihood = 20.0;
+    inlierParameter = 1.5;
+    outlierParameter = 3.0;
+    variance = 0.5;
+    stamp = 0;
+    tw = 0;
+    inlierCount = 0;
+    maxtw = 0;
+    outlierCount = 0;
+    pcb = 0;
+    angbuckets = 128;
+    angdist.resize(angbuckets, 0.0);
+    negdist.resize(angbuckets, 0.0);
+    nupdates = 0;
+}
+
+void vParticle::initialiseParameters(int id, double minLikelihood,
+                                     double outlierParam, double inlierParam,
+                                     double variance, int angbuckets)
+{
+    this->id = id;
+    this->minlikelihood = minLikelihood;
+    this->outlierParameter = outlierParam;
+    this->inlierParameter = inlierParam;
+    this->variance = variance;
+    this->angbuckets = angbuckets;
+    angdist.resize(angbuckets, 0.0);
+    negdist.resize(angbuckets, 0.0);
+    likelihood = 1.0;
+}
+
+vParticle& vParticle::operator=(const vParticle &rhs)
+{
+    this->x = rhs.x;
+    this->y = rhs.y;
+    this->r = rhs.r;
+    this->weight = rhs.weight;
+
+    for(unsigned int i = 0; i < angbuckets; i++) {
+        angdist[i] = rhs.angdist[i];
+        //negdist[i] = rhs.negdist[i];
+    }
+
+    return *this;
+}
+
+void vParticle::initialiseState(double x, double y, double r)
+{
+    this->x = x;
+    this->y = y;
+    this->r = r;
+
+    for(int i = 0; i < angbuckets; i++) {
+        angdist[i] = 0.0;
+        //negdist[i] = 0;
+    }
+    likelihood = 1.0;
+    predlike = 1.0;
+
+}
+
+void vParticle::randomise(int x, int y, int r)
+{
+    initialiseState(rand()%x, rand()%y, rand()%r);
+}
+
+void vParticle::resetWeight(double value)
+{
+    this->weight = weight;
+}
+
+void vParticle::resetRadius(double value)
+{
+    this->r = value;
+}
+
+void vParticle::predict(double sigma)
+{
+    if(sigma < 0) sigma = variance;
+    double gx = generateGaussianNoise(0, sigma);
+    double gy = generateGaussianNoise(0, sigma);
+    double gr = generateGaussianNoise(0, sigma);
+
+
+    //predlike = fabs(gx) + fabx(gy) + fabs(gr);
+    //predlike = exp((gx *gx + gy*gy + gr*gr) * -0.5 * 0.04);
+    predlike = 1.0 - sqrt(gx*gx + gy*gy + gr*gr) / 10;
+    if(predlike < 0) predlike = 0;
+
+    for(int i = 0; i < angbuckets; i++) {
+        //angdist[i] *= predlike;
+        //negdist[i] *= predlike;
+    }
+
+    x += gx;
+    y += gy;
+    r += gr;
+
+}
+
+void vParticle::concludeLikelihood(double decay)
+{
+
+
+    nupdates = 0;
+    likelihood = 0;
+    for(int i = 0; i < angbuckets; i++)
+        likelihood += angdist[i];
+
+    if(likelihood > minlikelihood)
+        weight = likelihood * weight;// * dtvar;// * predlike;
+    else
+        weight = minlikelihood * weight;
+
+}
+
+void vParticle::updateWeightSync(double normval)
+{
+    weight = weight / normval;
+}
+
+/*////////////////////////////////////////////////////////////////////////////*/
+//HELPERS
+/*////////////////////////////////////////////////////////////////////////////*/
+
 
 double generateGaussianNoise(double mu, double sigma)
 {
@@ -119,198 +255,6 @@ double approxatan2(double y, double x) {
 
     return r;
 
-}
-
-/*////////////////////////////////////////////////////////////////////////////*/
-//VPARTICLETRACKER
-/*////////////////////////////////////////////////////////////////////////////*/
-
-vParticle::vParticle()
-{
-    weight = 1.0;
-    likelihood = 1.0;
-    predlike = 1.0;
-    minlikelihood = 20.0;
-    inlierParameter = 1.5;
-    outlierParameter = 3.0;
-    variance = 0.5;
-    stamp = 0;
-    tw = 0;
-    inlierCount = 0;
-    maxtw = 0;
-    outlierCount = 0;
-    pcb = 0;
-    angbuckets = 128;
-    angdist.resize(angbuckets, 0.0);
-    negdist.resize(angbuckets, 0.0);
-    nupdates = 0;
-}
-
-void vParticle::initialiseParameters(int id, double minLikelihood,
-                                     double outlierParam, double inlierParam,
-                                     double variance, int angbuckets)
-{
-    this->id = id;
-    this->minlikelihood = minLikelihood;
-    this->outlierParameter = outlierParam;
-    this->inlierParameter = inlierParam;
-    this->variance = variance;
-    this->angbuckets = angbuckets;
-    angdist.resize(angbuckets, 0.0);
-    negdist.resize(angbuckets, 0.0);
-    likelihood = 1.0;
-}
-
-vParticle& vParticle::operator=(const vParticle &rhs)
-{
-    this->x = rhs.x;
-    this->y = rhs.y;
-    this->r = rhs.r;
-    this->weight = rhs.weight;
-    //this->angdist = rhs.angdist;
-    //negdist.resize(angbuckets, 0.0);
-    //double lt = rhs.likelihood / angbuckets;
-    //angdist.resize(angbuckets, lt);
-    //for(unsigned int i = 0; i < angbuckets; i++)
-     //   angdist[i] = lt;
-    for(unsigned int i = 0; i < angbuckets; i++) {
-        angdist[i] = rhs.angdist[i];
-        //negdist[i] = rhs.negdist[i];
-    }
-
-    //this->angdist.zero();
-    //this->negdist = rhs.negdist;
-    //this->likelihood = rhs.likelihood;
-
-    return *this;
-}
-
-void vParticle::initialiseState(double x, double y, double r)
-{
-    this->x = x;
-    this->y = y;
-    this->r = r;
-
-    for(int i = 0; i < angbuckets; i++) {
-        angdist[i] = 0.0;
-        //negdist[i] = 0;
-    }
-    likelihood = 1.0;
-    predlike = 1.0;
-    //angdist.resize(angbuckets, 0.0);
-    //negdist.resize(angbuckets, 1.0);
-}
-
-void vParticle::randomise(int x, int y, int r)
-{
-    initialiseState(rand()%x, rand()%y, rand()%r);
-
-    //angdist.zero();
-    //negdist.resize(angbuckets, 1.0);
-}
-
-void vParticle::resetWeight(double value)
-{
-    this->weight = weight;
-}
-
-void vParticle::resetRadius(double value)
-{
-    this->r = value;
-}
-
-void vParticle::predict(double sigma)
-{
-    if(!sigma) sigma = variance;
-    double gx = generateGaussianNoise(0, sigma);
-    double gy = generateGaussianNoise(0, sigma);
-    double gr = generateGaussianNoise(0, sigma);
-
-//    sigma *= 3;
-//    double gx = 2 * sigma * rand() / (double)RAND_MAX - sigma;
-//    double gy = 2 * sigma * rand() / (double)RAND_MAX - sigma;
-//    double gr = 2 * sigma * rand() / (double)RAND_MAX - sigma;
-
-//    double inSigma2 = -0.5  / (sigma * sigma);
-//    double px = exp(gx * gx * inSigma2);
-//    double py = exp(gy * gy * inSigma2);
-//    double pr = exp(gr * gr * inSigma2);
-//    predlike = px * py * pr;
-
-    //predlike = fabs(gx) + fabx(gy) + fabs(gr);
-    //predlike = exp((gx *gx + gy*gy + gr*gr) * -0.5 * 0.04);
-    predlike = 1.0 - sqrt(gx*gx + gy*gy + gr*gr) / 10;
-    if(predlike < 0) predlike = 0;
-
-    for(int i = 0; i < angbuckets; i++) {
-        //angdist[i] *= predlike;
-        //negdist[i] *= predlike;
-    }
-
-    x += gx;
-    y += gy;
-    r += gr;
-
-
-//    x = generateGaussianNoise(x, variance);
-//    y = generateGaussianNoise(y, variance);
-//    r = generateGaussianNoise(r, variance * 0.4);
-}
-
-void vParticle::concludeLikelihood(double decay)
-{
-//    double dtavg = 0;
-//    double dtvar = 0;
-//    int n = 0;
-
-//    for(unsigned int i = 0; i < angdist.size(); i++) {
-//        if(angdist[i] == 0 || angdist[i] > maxtw) continue;
-//        dtavg += angdist[i];
-//        n++;
-//    }
-//    if(n > minlikelihood) {
-//        dtavg /= n;
-//        for(unsigned int i = 0; i < angdist.size(); i++) {
-//            if(angdist[i] == 0 || angdist[i] > maxtw) continue;
-//            dtvar += (dtavg - angdist[i]) * (dtavg - angdist[i]);
-//        }
-//        dtvar /= n;
-//        dtvar = 0.000001 + 1.0 / sqrt(dtvar * 2.0 * M_PI);
-//    } else {
-//        dtvar = 0.000001;
-//    }
-
-    nupdates = 0;
-    likelihood = 0;
-    for(int i = 0; i < angbuckets; i++) {
-//        if(negdist[i] > angdist[i])
-//            likelihood += angdist[i] / negdist[i];
-//        else
-            likelihood += angdist[i];
-        //negdist[i] = 0;
-    }
-
-    if(likelihood > minlikelihood)
-        weight = likelihood * weight;// * dtvar;// * predlike;
-    else
-        weight = minlikelihood * weight;
-
-
-//    for(int i = 0; i < angbuckets; i++) {
-//        angdist[i] *= predlike;
-//        //negdist[i] *= predlike;
-//    }
-
-    //negdist.resize(angbuckets, 0.0);
-
-
-
-
-}
-
-void vParticle::updateWeightSync(double normval)
-{
-    weight = weight / normval;
 }
 
 
