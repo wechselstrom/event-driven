@@ -16,6 +16,7 @@ vParticleReader::vParticleReader()
     avgy = 60;
     avgr = 20;
     nparticles = 50;
+    standard_weight = 1.0 / nparticles;
     pwsum = 1.0;
     pwsumsq = nparticles * pow(1.0 / nparticles, 2.0);
     rate = 1000;
@@ -59,6 +60,7 @@ void vParticleReader::initialise(unsigned int width , unsigned int height,
     this->nRandomise = 1.0 + nRands;
     this->adaptive = adaptive;
     this->rate = rate;
+    this->standard_weight = 1.0 / nparticles;
 
     pwsumsq = nparticles * pow(1.0 / nparticles, 2.0);
 
@@ -75,7 +77,7 @@ void vParticleReader::initialise(unsigned int width , unsigned int height,
         else
             p.initialiseState(res.width/2.0, res.height/2.0, (rbound_max + rbound_min)/2.0);
 
-        p.resetWeight(1.0/nparticles);
+        p.resetWeight(standard_weight);
 
         indexedlist.push_back(p);
     }
@@ -167,7 +169,7 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
    // tempT = yarp::os::Time::now();
     vQueue q = inputBottle.get<AE>();
    // obsTy += yarp::os::Time::now() - tempT;
-    static double maxlikelihood = 0, avglikelihood = 0;
+    static double maxlikelihood = 0, avglikelihood = 0, max_weight = 0;
 
     for(ev::vQueue::iterator qi = q.begin(); qi != q.end(); qi++) {
 
@@ -186,14 +188,16 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
             updatedvs = std::max(indexedlist[i].incrementalLikelihood(v->x, v->y), updatedvs);
         obsTy += yarp::os::Time::now() - tempT;
 
-        if((double)updatedvs < templatebins / 2.0) continue;
+        if((double)updatedvs < templatebins * 2.0 / M_PI) continue;
 
-        tempT = yarp::os::Time::now();
+        // ///////////////// //
+        // PERFORM AN UPDATE //
+        // ///////////////// //
+
+
         //NORMALISE
-        //double decay = 1.0 - ((double)updatedvs / 64.0);
+        tempT = yarp::os::Time::now();
         double decay = 0.99; //exp((double)updatedvs / -32.0);
-        //if(decay < 0.5) decay = 0.5;
-        //decay = 0.99;
         double normval = 0.0;
         for(int i = 0; i < nparticles; i++) {
             indexedlist[i].concludeLikelihood(decay);
@@ -203,13 +207,9 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
             indexedlist[i].updateWeightSync(normval);
 
         //FIND THE AVERAGE POSITION
-        pwsum = 0;
-        pwsumsq = 0;
-        avgx = 0;
-        avgy = 0;
-        avgr = 0;
-        maxlikelihood = 0;
-        avglikelihood = 0;
+        pwsum = 0; pwsumsq = 0;
+        avgx = 0; avgy = 0; avgr = 0;
+        maxlikelihood = 0; avglikelihood = 0; max_weight = 0;
         int max_index = 0;
 
         for(int i = 0; i < nparticles; i ++) {
@@ -219,26 +219,28 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
             avgx += indexedlist[i].getx() * w;
             avgy += indexedlist[i].gety() * w;
             avgr += indexedlist[i].getr() * w;
-            if(indexedlist[i].getl() > maxlikelihood) {
+            if(i && indexedlist[i].getl() > maxlikelihood) {
                 maxlikelihood = indexedlist[i].getl();
                 max_index = i;
             }
-            avglikelihood += indexedlist[i].getl();
+            if(indexedlist[i].getw() > max_weight) {
+                max_weight = indexedlist[i].getw();
+            }
+            if(i)
+                avglikelihood += indexedlist[i].getl();
         }
-        avglikelihood /= nparticles;
+        avglikelihood /= (nparticles-1);
 
         static int cc = 100;
         if(++cc >= 100) {
-            indexedlist[max_index].printL();
+            //indexedlist[max_index].printL();
             cc = 0;
         }
-
 
         //RESAMPLE
         if(!adaptive || pwsumsq * nparticles > 2.0) {
             std::vector<vParticle> indexedSnap = indexedlist;
-            for(int i = 0; i < nparticles; i++) {
-                //if(indexedlist[i].getw() > 0.5 / nparticles) continue;
+            for(int i = 1; i < nparticles; i++) {
                 double rn = this->nRandomise * (double)rand() / RAND_MAX;
                 if(rn > 1.0)
                     indexedlist[i].initialiseState(res.width/2.0, res.height/2.0, (rbound_max + rbound_min)/2.0);
@@ -251,14 +253,15 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
                     indexedlist[i] = indexedSnap[j];
                 }
             }
+            //indexedlist[0].resetWeight(standard_weight);
         }
         resTy += yarp::os::Time::now() - tempT;
 
-
-        tempT = yarp::os::Time::now();
         //PREDICT
-        for(int i = 0; i < nparticles; i++) {
-            indexedlist[i].predict(2.0 * updatedvs / (double)templatebins);
+        tempT = yarp::os::Time::now();
+        indexedlist[0].predict(0.0);
+        for(int i = 1; i < nparticles; i++) {
+            indexedlist[i].predict(4.0 * (M_PI/2.0) * updatedvs / (double)templatebins);
             if(!inbounds(indexedlist[i])) {
                 indexedlist[i].randomise(res.width, res.height, rbound_max);
             }
@@ -317,14 +320,17 @@ void vParticleReader::onRead(ev::vBottle &inputBottle)
         yarp::os::Bottle &sob = scopeOut.prepare();
         sob.clear();
 
-        //double dt = q.back()->stamp - q.front()->stamp;
-        //if(dt < 0) dt += ev::vtsHelper::max_stamp;
-        sob.addDouble(obsTv * vtsHelper::tsscaler / delayc1); //actual time passed
+
+        //sob.addDouble(obsTv * vtsHelper::tsscaler / delayc1); //actual time passed
         //sob.addDouble(obsTy / delayc1); //time taken for processing events
-        //sob.addDouble(avglikelihood);
-        sob.addDouble(maxlikelihood);
-        sob.addDouble(delayc1 / (resTy + predTy + obsTy)); // actual update rate
-        sob.addDouble(delayc1 / (obsTv * vtsHelper::tsscaler)); // required update rate
+        //sob.addDouble(delayc1 / (resTy + predTy + obsTy)); // actual update rate
+        //sob.addDouble(delayc1 / (obsTv * vtsHelper::tsscaler)); // required update rate
+
+        sob.addDouble(indexedlist[0].getl());
+        sob.addDouble(avglikelihood);
+        sob.addDouble(indexedlist[0].getw());
+        sob.addDouble(max_weight);
+
 
         obsTv = 0;
         obsTy = 0;

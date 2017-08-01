@@ -37,6 +37,7 @@ private:
     double likelihood;
 
     double predlike;
+    double theta;
     int    outlierCount;
     int    inlierCount;
     double maxtw;
@@ -77,7 +78,7 @@ public:
 
     void printL() {
 
-        std::cout << std::setprecision(1) << std::fixed;
+        std::cout << std::setprecision(3) << std::fixed;
         for(int i = 0; i < angbuckets; i++) {
             //if(angdist[i] > 0.5) std::cout << "1";
             //else std::cout << "0";
@@ -97,37 +98,24 @@ public:
 
     inline int incrementalLikelihood(int vx, int vy)
     {
+        static double twopi = 2.0*M_PI;
         double dx = vx - x;
         double dy = vy - y;
 
         double sqrd = sqrt(pow(dx, 2.0) + pow(dy, 2.0)) - r;
 
-        if(sqrd > -inlierParameter && sqrd < inlierParameter) {
+        if(sqrd > inlierParameter) return nupdates;
 
-            int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
-            //if(angdist[a] < 1.0) {
-                //likelihood++;
-             angdist[a] = 1.0;
-            //double s = 1.0 - fabs(sqrd) / (inlierParameter*1.1);
-                //angdist[a] = std::max(angdist[a], s);
-                //if(angdist[a] > 1) angdist[a] = 1;
-                //negdist[a] = 0;
-                nupdates++;
-            //}
+        double phi = atan2(dy, dx);
+        //double gain = fabs(cos(theta - phi));
 
-        //} else if(sqrd > -outlierParameter && sqrd < 0) { //-3 < X < -5
-        } else if(sqrd < 0) { //-3 < X < -5
+        int a = 0.5 + (angbuckets-1) * (phi + M_PI) / twopi;
 
-            int a = 0.5 + (angbuckets-1) * (atan2(dy, dx) + M_PI) / (2.0 * M_PI);
-            //if(angdist[a] > 0.0) {
-                //likelihood--;
-                angdist[a] = 0.0;
-                //if(angdist[a] < 0) angdist[a] = 0;
-                //angdist[a] = 0;
-                //negdist[a] = 1;
-                //nupdates++;
-            //}
-
+        if(sqrd > -inlierParameter) {
+            angdist[a] = 1.0;
+            nupdates++;
+        } else {
+            angdist[a] = 0.0;
         }
 
         return nupdates;

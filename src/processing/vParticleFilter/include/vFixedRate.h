@@ -55,6 +55,8 @@ private:
     int rbound_min;
     int rbound_max;
 
+    double standard_weight;
+
     //parameters
     ev::resolution res;
     bool strict;

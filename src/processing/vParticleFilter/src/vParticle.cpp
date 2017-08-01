@@ -30,6 +30,7 @@ vParticle::vParticle()
     angdist.resize(angbuckets, 0.0);
     negdist.resize(angbuckets, 0.0);
     nupdates = 0;
+    theta = 0;
 }
 
 void vParticle::initialiseParameters(int id, double minLikelihood,
@@ -74,6 +75,7 @@ void vParticle::initialiseState(double x, double y, double r)
     }
     likelihood = 1.0;
     predlike = 1.0;
+    theta = 0;
 
 }
 
@@ -84,7 +86,7 @@ void vParticle::randomise(int x, int y, int r)
 
 void vParticle::resetWeight(double value)
 {
-    this->weight = weight;
+    this->weight = value;
 }
 
 void vParticle::resetRadius(double value)
@@ -99,16 +101,26 @@ void vParticle::predict(double sigma)
     double gy = generateGaussianNoise(0, sigma);
     double gr = generateGaussianNoise(0, sigma);
 
-
+    //theta = atan2(gy, gx);
+    double dr = sqrt(gx*gx + gy*gy + gr*gr);
     //predlike = fabs(gx) + fabx(gy) + fabs(gr);
-    //predlike = exp((gx *gx + gy*gy + gr*gr) * -0.5 * 0.04);
-    predlike = 1.0 - sqrt(gx*gx + gy*gy + gr*gr) / 10;
+    //predlike = exp(sqrt(gx*gx + gy*gy + gr*gr) * -1.0/(inlierParameter));
+    //predlike = 1.0 - sqrt(gx*gx + gy*gy + gr*gr) / 100;
     if(predlike < 0) predlike = 0;
 
+    //std::cout << std::setprecision(3) << std::fixed;
     for(int i = 0; i < angbuckets; i++) {
-        //angdist[i] *= predlike;
+        //double phi = (i+0.5) * (2 * M_PI / angbuckets) - M_PI;
+
+        //if(angdist[i])
+            //angdist[i] -= dr * fabs(cos(theta - phi)) / (inlierParameter * 100.0);
+            angdist[i] -= dr / 200.0;
+            if(angdist[i] < 0) angdist[i] = 0;
+            //std::cout << angdist[i] << " ";
         //negdist[i] *= predlike;
+
     }
+    //weight *= predlike;
 
     x += gx;
     y += gy;
@@ -123,6 +135,7 @@ void vParticle::concludeLikelihood(double decay)
     nupdates = 0;
     likelihood = 0;
     for(int i = 0; i < angbuckets; i++)
+        //if(angdist[i] > 0) likelihood += 1.0;
         likelihood += angdist[i];
 
     if(likelihood > minlikelihood)
