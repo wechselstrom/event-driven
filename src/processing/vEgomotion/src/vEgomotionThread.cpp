@@ -234,12 +234,22 @@ void vEgomotionThread::run()
         //get joints velocities, scale them and put them in a svm structure
         yarp::sig::Vector encvels;
         velobs->getEncVels(encvels);
+//        std::cout << "from encoders ";
+        bool notmoving = false;
+        int countNotMoving = 0;
         for(unsigned int b = 0; b < encvels.size(); b++)
         {
             encveltest[b].index = b + 1;
-            encveltest[b].value = (encvels[b] - min_j[b]) / range_j[b];
+            if(abs(encvels[b]) < pow(10, -15)) {
+                encveltest[b].value = 0;
+                countNotMoving++;
+            }
+            else
+                encveltest[b].value = (encvels[b] - min_j[b]) / range_j[b];
 //            std::cout << encveltest[b].value << " ";
         }
+//        std::cout << std::endl << std::endl;
+        if (countNotMoving == encvels.size()) notmoving = true;
 
         //feature is meant to terminate with -1
         encveltest[encvels.size()].index = -1;
@@ -264,8 +274,18 @@ void vEgomotionThread::run()
 
                 //predict egomotion using current encoder velocities
                 //and the learnt models
-                pred_meanv = predict_mean(encveltest);
-                pred_covv = predict_cov(encveltest);
+                if(notmoving == true) {
+                    pred_meanv[0] = 0.0;
+                    pred_meanv[1] = 0.0;
+                    pred_covv(0, 0) = 0.0001;
+                    pred_covv(1, 0) = 0.0;
+                    pred_covv(0, 1) = 0.0;
+                    pred_covv(1, 1) = 0.0001;
+                }
+                else {
+                    pred_meanv = predict_mean(encveltest);
+                    pred_covv = predict_cov(encveltest);
+                }
 
 //                ofp->vx = pred_meanv[0];
 //                ofp->vy = pred_meanv[1];
@@ -273,22 +293,16 @@ void vEgomotionThread::run()
 
                 //compute metric
                 bool isindependent = detect_independent(ofp, pred_meanv, pred_covv);
-//                if(isindependent) {
-                    auto inde = make_event<LabelledAE>(ofp);
-//                    inde->ID = 2;
-//                    outthread.pushevent(inde, yarpstamp);
-//                }
+                auto inde = make_event<LabelledAE>(ofp);
 
                 //if it is independent motion, tag the event as independent
-                if(isindependent) {
+                if(isindependent)
                     inde->ID = 2;
-                }
                 else
                     //if not, tag it as corner
                     inde->ID = 1;
 
                 outthread.pushevent(inde, yarpstamp);
-
 
                 if(debugPort.getOutputCount()) {
                     yarp::os::Bottle &scorebottleout = debugPort.prepare();
