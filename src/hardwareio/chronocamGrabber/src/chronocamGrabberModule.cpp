@@ -50,50 +50,33 @@ bool chronocamGrabberModule::configure(yarp::os::ResourceFinder &rf) {
     bool biaswrite = rf.check("biaswrite") && rf.check("biaswrite", yarp::os::Value(true)).asBool();
     bool jumpcheck = rf.check("jumpcheck") && rf.check("jumpcheck", yarp::os::Value(true)).asBool();
 
-    if(rf.check("controllerDevice")) {
 
-        std::string controllerDevice = rf.find("controllerDevice").asString();
+    vsctrlMng = vDevCtrl();
 
-        vsctrlMngLeft = vDevCtrl(controllerDevice, I2C_ADDRESS_LEFT);
-        vsctrlMngRight = vDevCtrl(controllerDevice, I2C_ADDRESS_RIGHT);
+    //bias values
+    yarp::os::Bottle biaslist = rf.findGroup("ATIS_BIAS");
 
-        //bias values
-        yarp::os::Bottle biaslistl = rf.findGroup("ATIS_BIAS_LEFT");
-        yarp::os::Bottle biaslistr = rf.findGroup("ATIS_BIAS_RIGHT");
+    bool con_success = false;
 
-        bool con_success = false;
-
-        if(!vsctrlMngLeft.setBias(biaslistl) || !vsctrlMngRight.setBias(biaslistr) ) {
-            std::cerr << "Bias file required to run chronocamGrabber" << std::endl;
-            return false;
-        }
-        std::cout << std::endl;
-        if(!vsctrlMngLeft.connect())
-            std::cerr << "Could not connect to vision controller left" << std::endl;
-        else
-            if(!vsctrlMngLeft.configure(verbose)) {
-                std::cerr << "Could not configure left camera" << std::endl;
-            } else {
-                con_success = true;
-            }
-
-        std::cout << std::endl;
-        if(!vsctrlMngRight.connect())
-            std::cerr << "Could not connect to vision controller right" << std::endl;
-        else {
-            if(!vsctrlMngRight.configure(verbose)) {
-                std::cerr << "Could not configure right camera" << std::endl;
-            } else {
-                con_success = true;
-            }
-        }
-        std::cout << std::endl;
-
-        if(!con_success) {
-            std::cerr << "A configuration device was specified but could not be connected" << std::endl;
-            return false;
+    if(!vsctrlMng.setBias(biaslist)) {
+        std::cerr << "Bias file required to run chronocamGrabber" << std::endl;
+        return false;
+    }
+    std::cout << std::endl;
+    if(!vsctrlMng.connect())
+        std::cerr << "Could not connect to vision controller" << std::endl;
+    else
+        if(!vsctrlMng.configure(verbose)) {
+            std::cerr << "Could not configure camera" << std::endl;
+        } else {
+            con_success = true;
         }
 
+    std::cout << std::endl;
+
+    if(!con_success) {
+        std::cerr << "A configuration device was specified but could not be connected" << std::endl;
+        return false;
     }
 
     bool yarppresent = yarp::os::Network::checkNetwork();
@@ -101,52 +84,43 @@ bool chronocamGrabberModule::configure(yarp::os::ResourceFinder &rf) {
         yError() << "Could not connect to YARP network";
 
     if(!yarppresent || biaswrite) {
-        vsctrlMngLeft.disconnect(true);
-        std::cout << "Left camera off" << std::endl;
-        vsctrlMngRight.disconnect(true);
-        std::cout << "Right camera off" << std::endl;
+        vsctrlMng.disconnect(true);
+        std::cout << "Camera off" << std::endl;
         return false;
     }
 
 
     //open rateThread device2yarp
-    if(rf.check("dataDevice")) {
+    int readPacketSize = 8 * rf.check("readPacketSize", yarp::os::Value("512")).asInt();
+    int maxBottleSize = 8 * rf.check("maxBottleSize", yarp::os::Value("100000")).asInt();
 
-        std::string dataDevice = rf.find("dataDevice").asString();
-        int readPacketSize = 8 * rf.check("readPacketSize", yarp::os::Value("512")).asInt();
-        int maxBottleSize = 8 * rf.check("maxBottleSize", yarp::os::Value("100000")).asInt();
+    yarp::os::Bottle filp = rf.findGroup("FILTER_PARAMS");
+    if(!D2Y.initialise(vsctrlMng.getCam(), filp.find("width").asInt(), filp.find("height").asInt(),
+		       moduleName, strict, errorcheck, maxBottleSize, readPacketSize)) {
+        std::cout << "A data device was specified but could not be initialised" << std::endl;
+        return false;
+    } else {
+        //see if we want to apply a filter to the events
+        if(rf.check("applyFilter", yarp::os::Value("false")).asBool()) {
 
-        if(!D2Y.initialise(moduleName, strict, errorcheck, dataDevice, maxBottleSize, readPacketSize)) {
-            std::cout << "A data device was specified but could not be initialised" << std::endl;
-            return false;
-        } else {
-            //see if we want to apply a filter to the events
-            if(rf.check("applyFilter", yarp::os::Value("false")).asBool()) {
+            if(!filp.isNull()) {
+                std::cout << "APPLYING EVENT FILTER: " << std::endl;
+                std::cout << filp.toString() << std::endl;
 
-                yarp::os::Bottle filp = rf.findGroup("FILTER_PARAMS");
-                if(!filp.isNull()) {
-                    std::cout << "APPLYING EVENT FILTER: " << std::endl;
-                    std::cout << filp.toString() << std::endl;
-
-                    D2Y.initialiseFilter(true,
-                                         filp.find("width").asInt(),
-                                         filp.find("height").asInt(),
-                                         filp.find("tsize").asInt(),
-                                         filp.find("ssize").asInt());
-                }
+                D2Y.initialiseFilter(true,
+                                     filp.find("width").asInt(),
+                                     filp.find("height").asInt(),
+                                     filp.find("tsize").asInt(),
+                                     filp.find("ssize").asInt());
             }
-
-            if(jumpcheck) {
-                std::cout << "CHECKING FOR ERRORS IN TIMESTAMPS" << std::endl;
-                D2Y.checkForTSJumps();
-            }
-            D2Y.start();
         }
 
-        //if(!Y2D.initialise(moduleName, dataDevice)) {
-        //    std::cerr << "Could not open YARP ports for Y2D" << std::endl;
-        //    return false;
-        //}
+        if(jumpcheck) {
+            std::cout << "CHECKING FOR ERRORS IN TIMESTAMPS" << std::endl;
+            D2Y.checkForTSJumps();
+        }
+        D2Y.start();
+
     }
 
     if (!handlerPort.open(moduleName)) {
@@ -174,8 +148,7 @@ bool chronocamGrabberModule::close() {
     std::cout << "done" << std::endl;
 
     std::cout << "closing device drivers.. ";
-    vsctrlMngLeft.disconnect(true);
-    vsctrlMngRight.disconnect(true);
+    vsctrlMng.disconnect(true);
     std::cout << "done" << std::endl;
 
     return true;
@@ -248,55 +221,16 @@ bool chronocamGrabberModule::respond(const yarp::os::Bottle& command,
         rec = true;
     {
         std::string biasName = command.get(1).asString();
-        std::string channel = command.get(2).asString();
 
         // setBias function
-        if (channel == "left") {
-            int val = vsctrlMngLeft.getBias(biasName);
-            if(val >= 0) {
-                reply.addString("Left: ");
-                reply.addString(biasName);
-                reply.addInt(val);
-                ok = true;
-            } else {
-                reply.addString("Left Unknown Bias");
-                ok = false;
-            }
-        } else if (channel == "right") {
-            int val = vsctrlMngRight.getBias(biasName);
-            if(val >= 0) {
-                reply.addString("Right: ");
-                reply.addString(biasName);
-                reply.addInt(val);
-                ok = true;
-            } else {
-                reply.addString("Right Unknown Bias");
-                ok = false;
-            }
-        } else if (channel == "") {
-            int val = vsctrlMngLeft.getBias(biasName);
-            if(val >= 0) {
-                reply.addString("Left: ");
-                reply.addString(biasName);
-                reply.addInt(val);
-                ok = true;
-            } else {
-                reply.addString("Left Unknown Bias");
-                ok = false;
-            }
-            val = vsctrlMngRight.getBias(biasName);
-            if(val >= 0) {
-                reply.addString("Right: ");
-                reply.addString(biasName);
-                reply.addInt(val);
-                ok = true & ok;
-            } else {
-                reply.addString("RightUnknown Bias");
-                ok = false;
-            }
-        }
-        else {
-            std::cout << "unrecognised channel" << std::endl;
+        int val = vsctrlMng.getBias(biasName);
+        if(val >= 0) {
+            reply.addString("Camera: ");
+            reply.addString(biasName);
+            reply.addInt(val);
+            ok = true;
+        } else {
+            reply.addString("Unknown Bias");
             ok = false;
         }
     }
@@ -307,122 +241,36 @@ bool chronocamGrabberModule::respond(const yarp::os::Bottle& command,
     {
         std::string biasName = command.get(1).asString();
         unsigned int biasValue = command.get(2).asInt();
-        std::string channel = command.get(3).asString();
 
         // setBias function
-        if (channel == "left"){
-            vsctrlMngLeft.setBias(biasName, biasValue);
-            ok = true;
-        } else if (channel == "right")
-        {
-            vsctrlMngRight.setBias(biasName, biasValue);
-            ok = true;
-        } else if (channel == "")
-        {
-            vsctrlMngLeft.setBias(biasName, biasValue);
-            vsctrlMngRight.setBias(biasName, biasValue);
-            ok = true;
-        }
-        else {
-            std::cout << "unrecognised channel" << std::endl;
-            ok =false;
-        }
+        vsctrlMng.setBias(biasName, biasValue);
+        ok = true;
     }
         break;
     case COMMAND_VOCAB_PROG:
         rec= true;
     {
-        std::string channel = command.get(1).asString();
-
         // progBias function
-        if (channel == "left"){
-            vsctrlMngLeft.configureBiases();
-            ok = true;
-        } else if (channel == "right")
-        {
-            vsctrlMngRight.configureBiases();
-            ok = true;
-        }
-        else if (channel == "")
-        {
-            vsctrlMngLeft.configureBiases();
-            vsctrlMngRight.configureBiases();
-            ok = true;
-        } else {
-            std::cout << "unrecognised channel" << std::endl;
-            ok =false;
-        }
+        vsctrlMng.configureBiases();
+        ok = true;
     }
         break;
     case COMMAND_VOCAB_PWROFF:
         rec= true;
-    {   std::string channel = command.get(1).asString();
 
-        if (channel == "left"){
-            vsctrlMngLeft.suspend();
-            ok = true;
-
-        } else if (channel == "right") {
-            vsctrlMngRight.suspend();
-            ok = true;
-        } else if (channel == "") { // if channel is not specified power off both
-            vsctrlMngRight.suspend();
-            vsctrlMngLeft.suspend();
-            ok = true;
-        } else {
-            std::cout << "unrecognised channel" << std::endl;
-            ok = false;
-
-        }
+    {
+        vsctrlMng.suspend();
+        ok = true;
     }
         break;
 
     case COMMAND_VOCAB_PWRON:
         rec= true;
-    {   std::string channel = command.get(1).asString();
-
-        if (channel == "left"){
-            vsctrlMngLeft.activate();
+    {
+            vsctrlMng.activate();
             ok = true;
-
-        } else if (channel == "right") {
-            vsctrlMngRight.activate();
-            ok = true;
-        } else if (channel == "") { // if channel is not specified power off both
-            vsctrlMngRight.activate();
-            vsctrlMngLeft.activate();
-            ok = true;
-        } else {
-            std::cout << "unrecognised channel" << std::endl;
-            ok = false;
-
-        }
     }
         break;
-
-//    case COMMAND_VOCAB_RST:
-//        rec= true;
-//    {   std::string channel = command.get(1).asString();
-
-//        if (channel == "left"){
-//            vsctrlMngLeft->chipReset();
-//            ok = true;
-
-//        } else if (channel == "right") {
-//            vsctrlMngRight->chipReset();
-//            ok = true;
-//        } else if (channel == "") { // if channel is not specified power off both
-//            vsctrlMngRight->chipReset();
-//            vsctrlMngLeft->chipReset();
-//            ok = true;
-//        } else {
-//            std::cout << "unrecognised channel" << std::endl;
-//            ok = false;
-
-//        }
-//    }
-//        break;
-
 
     }
 

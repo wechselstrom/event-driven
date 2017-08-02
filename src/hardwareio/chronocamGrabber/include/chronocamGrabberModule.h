@@ -53,8 +53,7 @@ class chronocamGrabberModule : public yarp::os::RFModule {
     yarp::os::Port handlerPort; // a port to handle messages
 
     //HANDLES DEVICE CONFIGURATION
-    vDevCtrl vsctrlMngLeft;
-    vDevCtrl vsctrlMngRight;
+    vDevCtrl vsctrlMng;
 
     //HANDLES READING WRITING TO DATA DEVICE AND YARP
     device2yarp D2Y; // ratethread that reads the device and writes to yarp vBottle

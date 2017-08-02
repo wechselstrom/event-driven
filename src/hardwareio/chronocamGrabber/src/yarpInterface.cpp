@@ -15,9 +15,17 @@
  */
 
 #include "yarpInterface.h"
+
+#include "atis_events_stream.h"
+
+#include "lib_atis.h"
+#include "lib_atis_biases.h"
+#include "lib_atis_instance.h"
+
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+
 
 /******************************************************************************/
 //vDevReadBuffer
@@ -29,7 +37,6 @@ vDevReadBuffer::vDevReadBuffer()
     readSize = 1024;      //bytes
 
     //internal variables/storage
-    fd = -1;
     readCount = 0;
     lossCount = 0;
 
@@ -37,18 +44,67 @@ vDevReadBuffer::vDevReadBuffer()
 
 }
 
-bool vDevReadBuffer::initialise(std::string devicename,
-                                unsigned int bufferSize,
+long vDevReadBuffer::getEventChunk(unsigned char* target)
+{
+    if (!cam->poll_buffer()) {
+        return 0;
+    }
+    long n_events = 0;
+    long n_TD = 0;
+    
+    
+    uint32_t *ev_buffer = (uint32_t*)cam->decode_buffer(&n_events);
+    uint64_t *target64 = (uint64_t*) target;
+
+    
+    for (int i=0; i < n_events; ++i) {
+
+        EventBase * evbase = reinterpret_cast<EventBase*>(&ev_buffer[i]);
+        if(static_cast<Event_Types_underlying>(Event_Types::EVT_TIME_HIGH) == evbase->type) {
+            Event_EVT_TIME_HIGH ev = *reinterpret_cast<Event_EVT_TIME_HIGH*>(&ev_buffer[i]);
+	    last_timestamp = ((uint64_t) ev.timestamp)<<11;
+        } else if(static_cast<Event_Types_underlying>(Event_Types::LEFT_TD_LOW) == evbase->type) {
+    	    Event_EVENT2D ev = *reinterpret_cast<Event_EVENT2D*>(&ev_buffer[i]);
+	    uint32_t ts = ((last_timestamp + (uint32_t) ev.timestamp)%(1<<25));
+	    uint64_t num = ((uint64_t) ts)|((uint64_t)(this->height-1-ev.y)<<42)|((uint64_t)(this->width-1-ev.x)<<33)|0UL<<32;
+	    target64[n_TD] = num;
+            ++n_TD;
+	    //std::cout << "(" << ev.timestamp << ", " << ev.x << ", " << ev.y << ", " << 0 << "), " << std::endl;
+        } else if(static_cast<Event_Types_underlying>(Event_Types::LEFT_TD_HIGH) == evbase->type) {
+    	    Event_EVENT2D ev = *reinterpret_cast<Event_EVENT2D*>(&ev_buffer[i]);
+	    uint32_t ts = ((last_timestamp + (uint32_t) ev.timestamp)%(1<<25));
+	    uint64_t num = ((uint64_t) ts)|((uint64_t)(this->height-1-ev.y)<<42)|((uint64_t)(this->width-1-ev.x)<<33)|1UL<<32;
+	    target64[n_TD] = num;
+            ++n_TD;
+	    //std::cout << "(" << ev.timestamp << ", " << ev.x << ", " << ev.y << ", " << 1 << "), " << std::endl;
+	    //std::cout << ".";
+        } else if(static_cast<Event_Types_underlying>(Event_Types::LEFT_APS_START) == evbase->type) {
+    	// currently no plan for APS events
+        } else if(static_cast<Event_Types_underlying>(Event_Types::LEFT_APS_END) == evbase->type) {
+    	// currently no plan for APS events
+        } else {
+	    std::cout << "!";
+	}
+    }
+    
+    if(n_TD > bufferSize / 8)
+	    std::cout << "n_TD bigger than buffersize: " << n_TD << std::endl;
+    //std::cout << std::endl;
+    
+    return n_TD*8; //TODO:change this! use n_TD instead
+}
+
+
+bool vDevReadBuffer::initialise(AtisInstance &cam,
+				int width, int height,
+				unsigned int bufferSize,
                                 unsigned int readSize)
 {
 
-    fd = open(devicename.c_str(), O_RDONLY);
-    if(fd < 0) {
-        fd = open(devicename.c_str(), O_RDONLY | O_NONBLOCK);
-        if(fd < 0)
-            return false;
-    }
 
+    this->cam = &cam;
+    this->width = width;
+    this->height = height;
     if(bufferSize > 0) this->bufferSize = bufferSize;
     if(readSize > 0) this->readSize = readSize;
 
@@ -61,121 +117,125 @@ bool vDevReadBuffer::initialise(std::string devicename,
 
     return true;
 
-}
+	}
 
 void vDevReadBuffer::run()
-{
-
-    if(fd < 0) {
-        std::cout << "Event Reading Device uninistialised. Please run "
-            "initialisation before starting the thread" << std::endl;
-        return;
-    }
-
-    signal.check();
-
-    while(!isStopping()) {
-
-        safety.wait();
-
-        int r = 0;
-        if(readCount >= bufferSize) {
-            //we have reached maximum software buffer - read from the HW but
-            //just discard the result.
-            r = read(fd, discardbuffer.data(), readSize);
-            if(r > 0) lossCount += r;
-        } else {
-            //we read and fill up the buffer
-            r = read(fd, readBuffer->data() + readCount, std::min(bufferSize - readCount, readSize));
-            if(r > 0) readCount += r;
-        }
-
-        if(r < 0 && errno != EAGAIN) {
-            perror("Error reading events: ");
-        }
-
-        safety.post();
-        if(bufferedreadwaiting) {
-            //the other thread is read to read
-            signal.wait(); //wait for it to do the read
-        }
-
-    }
+	{
 
 
-}
+	    signal.check();
 
-void vDevReadBuffer::threadRelease()
-{
-    if(fd) close(fd);
-}
+	    while(!isStopping()) {
 
-std::vector<unsigned char>& vDevReadBuffer::getBuffer(unsigned int &nBytesRead, unsigned int &nBytesLost)
-{
+		safety.wait();
 
-    //safely copy the data into the accessBuffer and reset the readCount
-    bufferedreadwaiting = true;
-    safety.wait();
-    bufferedreadwaiting = false;
+		int r = 0;
+		if(readCount >= bufferSize) {
+		    //we have reached maximum software buffer - read from the HW but
+		    //just discard the result.
+		    //TODO: read events!
+		    //r = read(fd, discardbuffer.data(), readSize);
+		    r = getEventChunk(discardbuffer.data());
+		    //std::cout << "discarded " << r << " events" << std::endl;
+		    if(r > 0) lossCount += r;
+		} else {
+		    //we read and fill up the buffer
+		    //TODO: read events!
+		    //r = read(fd, readBuffer->data() + readCount, std::min(bufferSize - readCount, readSize));
+		    r = getEventChunk(readBuffer->data() + readCount);
+		    //if (r>0) std::cout << "read " << r << " events" << std::endl;
+		    if(r > 0) readCount += r;
+		}
 
-    //switch the buffer the read into
-    std::vector<unsigned char> *temp;
-    temp = readBuffer;
-    readBuffer = accessBuffer;
-    accessBuffer = temp;
+		if(r < 0 && errno != EAGAIN) {
+		    perror("Error reading events: ");
+		}
 
-    //reset the filling position
-    nBytesRead = readCount;
-    nBytesLost = lossCount;
-    readCount = 0;
-    lossCount = 0;
+		safety.post();
+		if(bufferedreadwaiting) {
+		    //the other thread is read to read
+		    signal.wait(); //wait for it to do the read
+		}
 
-    //send the correct signals to restart the grabbing thread
-    safety.post();
-    signal.check();
-    signal.post(); //tell the other thread we are done
+	    }
 
-    return *accessBuffer;
 
-}
+	}
 
-/******************************************************************************/
-//device2yarp
-/******************************************************************************/
+	void vDevReadBuffer::threadRelease()
+	{
+	    //close
+	}
 
-device2yarp::device2yarp() {
-    countAEs = 0;
-    countLoss = 0;
-    prevAEs = 0;
-    strict = false;
-    errorchecking = false;
-    applyfilter = false;
-    jumpcheck = false;
-}
+	std::vector<unsigned char>& vDevReadBuffer::getBuffer(unsigned int &nBytesRead, unsigned int &nBytesLost)
+	{
 
-bool device2yarp::initialise(std::string moduleName, bool strict, bool check,
-                             std::string deviceName, unsigned int bufferSize,
-                             unsigned int readSize) {
+	    //safely copy the data into the accessBuffer and reset the readCount
+	    bufferedreadwaiting = true;
+	    safety.wait();
+	    bufferedreadwaiting = false;
 
-    if(!deviceReader.initialise(deviceName, bufferSize, readSize))
-        return false;
+	    //switch the buffer the read into
+	    std::vector<unsigned char> *temp;
+	    temp = readBuffer;
+	    readBuffer = accessBuffer;
+	    accessBuffer = temp;
 
-    this->errorchecking = check;
+	    //reset the filling position
+	    nBytesRead = readCount;
+	    nBytesLost = lossCount;
+	    readCount = 0;
+	    lossCount = 0;
 
-    this->strict = strict;
-    if(strict) {
-        std::cout << "D2Y: setting output port to strict" << std::endl;
-        portvBottle.setStrict();
-    } else {
-        std::cout << "D2Y: setting output port to not-strict" << std::endl;
-    }
+	    //send the correct signals to restart the grabbing thread
+	    safety.post();
+	    signal.check();
+	    signal.post(); //tell the other thread we are done
 
-    if(!portEventCount.open(moduleName + "/eventCount:o"))
-        return false;
+	    return *accessBuffer;
 
-    return portvBottle.open(moduleName + "/vBottle:o");
+	}
 
-}
+	/******************************************************************************/
+	//device2yarp
+	/******************************************************************************/
+
+	device2yarp::device2yarp() {
+	    countAEs = 0;
+	    countLoss = 0;
+	    prevAEs = 0;
+	    strict = false;
+	    errorchecking = false;
+	    applyfilter = false;
+	    jumpcheck = false;
+	}
+
+	bool device2yarp::initialise(AtisInstance &cam, int width, int height,
+			             std::string moduleName,
+				     bool strict, bool check,
+				     unsigned int bufferSize,
+				     unsigned int readSize)
+	{
+
+	    if(!deviceReader.initialise(cam, width, height, bufferSize, readSize))
+		return false;
+
+	    this->errorchecking = check;
+
+	    this->strict = strict;
+	    if(strict) {
+		std::cout << "D2Y: setting output port to strict" << std::endl;
+		portvBottle.setStrict();
+	    } else {
+		std::cout << "D2Y: setting output port to not-strict" << std::endl;
+	    }
+
+	    if(!portEventCount.open(moduleName + "/eventCount:o"))
+		return false;
+
+	    return portvBottle.open(moduleName + "/vBottle:o");
+
+	}
 
 void device2yarp::afterStart(bool success)
 {
@@ -200,6 +260,7 @@ int device2yarp::applysaltandpepperfilter(std::vector<unsigned char> &data, int 
     int k = 0;
     for(int i = 0; i < nBytesRead; i+=8) {
         int *TS =  (int *)(data.data() + i);
+
         int *AE =  (int *)(data.data() + i + 4);
 
         int p = (*AE)&0x01;
@@ -242,7 +303,6 @@ void  device2yarp::run() {
         countLoss += nBytesLost / 8;
         if (nBytesRead <= 0) continue;
 
-
         bool dataError = false;
 
         //SMALL ERROR CHECKING BUT NOT FIXING
@@ -268,6 +328,7 @@ void  device2yarp::run() {
         if(!portvBottle.getOutputCount() || nBytesRead < 8)
             continue;
 
+	std::cout << *(int*)data.data() << std::endl;
         //typical ZYNQ behaviour to skip error checking
         unsigned int chunksize = 80000, i = 0;
         if(!errorchecking && !dataError) {
@@ -366,13 +427,8 @@ yarp2device::yarp2device()
     clockScale = 1;
 }
 
-bool yarp2device::initialise(std::string moduleName, std::string deviceName)
+bool yarp2device::initialise(std::string moduleName)
 {
-
-    devDesc = ::open(deviceName.c_str(), O_WRONLY);
-    if(devDesc < 0)
-        return false;
-
 
     fprintf(stdout,"opening port for receiving the events from yarp \n");
     this->useCallback();

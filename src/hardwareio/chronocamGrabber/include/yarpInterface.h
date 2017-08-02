@@ -19,6 +19,10 @@
 
 #define THRATE 1
 
+#include "lib_atis.h"
+#include "lib_atis_biases.h"
+#include "lib_atis_instance.h"
+
 #include <yarp/os/all.h>
 #include <iCub/eventdriven/all.h>
 #include <string>
@@ -34,8 +38,10 @@ private:
     unsigned int bufferSize;
     unsigned int readSize;
 
+    unsigned int last_timestamp=0;
+    int width; int height;
+
     //internal variables/storage
-    int fd;
     unsigned int readCount;
     unsigned int lossCount;
     unsigned int bytesperevent;
@@ -51,13 +57,18 @@ private:
     yarp::os::Semaphore signal;
     bool bufferedreadwaiting;
 
+    AtisInstance *cam = nullptr;
+
 public:
 
     vDevReadBuffer();
 
-    bool initialise(std::string devicename, unsigned int bufferSize = 0,
+    bool initialise(AtisInstance &cam,
+		    int width, int height,
+		    unsigned int bufferSize = 0,
                     unsigned int readSize = 0);
 
+    virtual long getEventChunk(unsigned char *target);
     //virtual bool threadInit();      //run before thread starts
     virtual void run();             //main function
     //virtual void onStop();          //run when stop() is called (first)
@@ -73,6 +84,8 @@ class device2yarp : public yarp::os::Thread {
 
 private:
 
+    // we need an instance which we can read events from here.
+    
     //parameters
     bool strict;
     bool errorchecking;
@@ -100,8 +113,10 @@ private:
 public:
 
     device2yarp();
-    bool initialise(std::string moduleName = "", bool strict = false, bool check = false,
-                    std::string deviceName = "", unsigned int bufferSize = 800000,
+    bool initialise(AtisInstance &cam, int width, int height,
+		    std::string moduleName = "",
+		    bool strict = false, bool check = false,
+                    unsigned int bufferSize = 800000,
                     unsigned int readSize = 1024);
     void initialiseFilter(bool applyfilter, int width, int height, int temporalsize, int spatialSize)
     {
@@ -141,7 +156,7 @@ class yarp2device : public yarp::os::BufferedPort<ev::vBottle>
 public:
 
     yarp2device();
-    bool    initialise(std::string moduleName, std::string deviceName);
+    bool    initialise(std::string moduleName);
     bool    init();
     void    close();
     void    onRead(ev::vBottle &bot);

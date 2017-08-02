@@ -26,13 +26,10 @@
 #include <stdlib.h>
 #include <linux/i2c-dev.h>
 
-typedef struct fpgaStatus {
-    bool crcErr;
-    bool biasDone;
-    bool i2cTimeout;
-    bool apsFifoFull;
-    bool tdFifoFull;
-} fpgaStatus_t;
+#include "lib_atis.h"
+#include "lib_atis_biases.h"
+#include "lib_atis_instance.h"
+
 
 class vDevCtrl
 {
@@ -40,36 +37,34 @@ private:
 
     //PARAMETERS
     std::string deviceName;
-    unsigned char I2CAddress;
 
     //INTERNAL VARIABLES
-    int fd;
+    Atis *atis = nullptr;
+    AtisInstance *cam = nullptr;
+    AtisBiases *biases = nullptr;
+    
     yarp::os::Bottle bias;
-    fpgaStatus_t fpgaStat;
 
 
-    //INTERNAL FUNCTIONS
-    int i2cRead(unsigned char reg, unsigned char *data, unsigned int size);
-    int i2cWrite(unsigned char reg, unsigned char *data, unsigned int size);
+
 
     //WRAPPERS?
     bool configureRegisters(); //new initDevice
 
-    bool setLatchAtEnd(bool Enable);
-    bool setShiftCount(uint8_t shiftCount);
 
-    int getFpgaStatus();
-    bool clearFpgaStatus(std::string clr);
 
 public:
 
     //REQUIRE: devicefilename, chiptype (eg DVS/ATIS), chipFPGAaddress (eg LEFT or RIGHT)
-    vDevCtrl(std::string deviceName = "", unsigned char i2cAddress = 0);
+    vDevCtrl(std::string deviceName = "");
 
     //SET/GET CONFIGURATION
     bool setBias(std::string biasName, unsigned int biasValue);
     bool setBias(yarp::os::Bottle bias);
     unsigned int getBias(std::string biasName);
+    
+    //Share Atis instance between Controller and D2Y
+    AtisInstance & getCam();
 
     //CONNECTION
     bool connect(void);

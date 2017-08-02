@@ -16,12 +16,16 @@
 import_array();
 %}
 
-%apply (unsigned int* ARGOUT_ARRAY1, int DIM1) {(unsigned int *r1, int n1)};
-%apply (unsigned int* ARGOUT_ARRAY1, int DIM1) {(unsigned int *r2, int n2)};
-%apply (unsigned int* ARGOUT_ARRAY1, int DIM1) {(unsigned int *r3, int n3)};
-%apply (unsigned int* ARGOUT_ARRAY1, int DIM1) {(unsigned int *r4, int n4)};
-%apply (unsigned int* ARGOUT_ARRAY1, int DIM1) {(unsigned int *r5, int n5)};
-%apply (unsigned int* IN_ARRAY2, int DIM1, int DIM2) {(unsigned int* data, int n, m)};
+%apply (unsigned int* ARGOUT_ARRAY1, int DIM1) {(unsigned int* r1, int n1),
+                                                (unsigned int* r2, int n2),
+                                                (unsigned int* r3, int n3),
+                                                (unsigned int* r4, int n4),
+                                                (unsigned int* r5, int n5)};
+%apply (unsigned int* IN_ARRAY1, int DIM1) {(unsigned int* s1, int m1),
+                                            (unsigned int* s2, int m2),
+                                            (unsigned int* s3, int m3),
+                                            (unsigned int* s4, int m4),
+                                            (unsigned int* s5, int m5)};
 
 namespace ev {
 
@@ -139,9 +143,11 @@ public:
     	return q.size();
     }
 
-    void getData(unsigned int *r1, int n1, unsigned int *r2, int n2,
-		 unsigned int *r3, int n3, unsigned int *r4, int n4,
-                 unsigned int *r5, int n5)
+    void _getData(unsigned int* r1, int n1,
+                 unsigned int* r2, int n2,
+		 unsigned int* r3, int n3,
+                 unsigned int* r4, int n4,
+                 unsigned int* r5, int n5)
     {
         auto q = $self->get<ev::vEvent>();
         if ((unsigned int)n1!= q.size()) {
@@ -160,31 +166,48 @@ public:
 	}
     }
 
-    void setData(unsigned int **data, int n, int m)
+    void _setData(unsigned int* s1, int m1,
+                 unsigned int* s2, int m2,
+		 unsigned int* s3, int m3,
+                 unsigned int* s4, int m4,
+                 unsigned int* s5, int m5)
     {
         auto q = $self->get<ev::vEvent>();
-        if ((unsigned int) n != q.size()) {
-                std::cerr << "The length of the provided matrix does not match\
-                              the number of events in a bottle (typically 512)" << std::endl;
-        	return;
-        }
-        if ((unsigned int) m != 5) {
-                std::cerr << "The provided matrix must be of shape (N, 5)" << std::endl;
+        if ((unsigned int)m1!= q.size()) {
+                std::cerr << "The size of the provided array does not match the expected size" << std::endl;
         	return;
         }
         unsigned int i;
 	for (i=0; i< q.size(); i++) {
 	    ev::vEvent *ev1 = &(*q.at(i));
 	    ev::AddressEvent *m = dynamic_cast<ev::AddressEvent*>(ev1);
-	    m->channel  = data[i][0];
-	    m->stamp    = data[i][1];
-	    m->x        = data[i][2];
-	    m->y        = data[i][3];
-	    m->polarity = data[i][4];
+	    m->channel  = s1[i];
+	    m->stamp    = s2[i];
+	    m->x        = s3[i];
+	    m->y        = s4[i];
+	    m->polarity = s5[i];
         }
     }
 
 }
+%pythoncode %{
+import numpy as np
+
+def getData(binp):
+    """ returns the channel, timestamp, x, y and polarity contained
+    in the  vBottle provided by binp"""
+    return np.stack(binp._getData(*[binp.getSize()]*5)).T
+
+def setData(binp, data):
+    """ writes the channel, timestamp, x, y and polarity provided
+    in data to the vBottle provided by binp"""
+    if (data.shape != (512, 5) or data.dtype != np.uint32):
+        raise ValueError('argument data requires shape (512, 5) and uint32')
+    binp._setData(*data.T)
+
+#vBottle.getData = classmethod(_class_getData)
+#vBottle.setData = classmethod(_class_setData)
+
+%}
 
 }
-
