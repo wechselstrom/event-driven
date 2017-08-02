@@ -874,7 +874,7 @@ void boundingDraw::draw(cv::Mat &image, const ev::vQueue &eSet, int vTime)
 
     std::vector < cv::Point > points;
     cv::Point p;
-    CvScalar c1 = CV_RGB(255, 0, 0);
+    CvScalar c1 = CV_RGB(0, 255, 255);
     cv::Rect boundRect;
     ev::vQueue::const_reverse_iterator qi;
     int count = 0;
