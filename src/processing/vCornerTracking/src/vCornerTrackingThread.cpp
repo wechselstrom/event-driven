@@ -79,19 +79,14 @@ void vCornerTrackingThread::run()
 
             //current corner event
             auto cep = is_event<LabelledAE>(*qi);
-            if(cep->x > width - 1 || cep->y > height - 1) {
-                std::cerr << "Pixel Out of Range: " << std::endl;
-                continue;
-            }
 
             //unwrap timestamp
             double currt = vtsHelper::tsscaler * unwrapper(cep->stamp);
+//            std::cout << currt << std::endl;
 
             //update cluster velocity
             vel = clusterSet->update(cep, currt);
 //            vel = clusterSet->updateNew(cep, currt);
-//            std::cout << "becomes " << vel.first << " " << vel.second << std::endl;
-//            std::cout << std::endl;
 
             //we output velocity if they are both non-zero
             if(vel.first && vel.second) {

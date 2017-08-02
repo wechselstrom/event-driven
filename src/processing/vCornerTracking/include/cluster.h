@@ -43,6 +43,9 @@ private:
     //matrix to check if the event has been already added
     std::vector< std::vector < int > > checkevt;
 
+    //to unwrap timestamp
+    ev::vtsHelper unwrapper;
+
     //cluster velocity
     std::pair <double, double> vel;
     double fiterr;

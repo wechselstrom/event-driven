@@ -117,20 +117,22 @@ void cluster::fitLine()
     meanvec[2] = 0.0;
 
     int count = 0;
-    unsigned int prevstamp;
-    unsigned int currt;
+//    int prevstamp = cluster_.front()->stamp;
+    int currt;
+//    std::cout << "test " << prevstamp * vtsHelper::tsscaler << std::endl;
     for(ev::vQueue::iterator qi = cluster_.begin(); qi != cluster_.end(); qi++)
     {
         auto cep = is_event<LabelledAE>(*qi);
 //        std::cout << cep->x << " " << cep->y << " " << cep->stamp << std::endl;
 
-        currt = cep->stamp;
-//        std::cout << currt << std::endl;
-        double dt = currt - prevstamp;
-        if(dt < 0) {
-            currt += ev::vtsHelper::max_stamp;
-//            std::cout << currt << std::endl;
-        }
+        currt = unwrapper(cep->stamp);
+//        int dt = currt - prevstamp;
+//        if(dt < 0) {
+//            currt += ev::vtsHelper::max_stamp;
+////            std::cout << currt << std::endl;
+//        }
+//        std::cout << prevstamp * vtsHelper::tsscaler << " " << currt * vtsHelper::tsscaler << " " << dt * vtsHelper::tsscaler << std::endl;
+//        std::cout <<currt * vtsHelper::tsscaler << " " << std::endl;
 
         data[count][0] = cep->x;
         data[count][1] = cep->y;
@@ -140,7 +142,7 @@ void cluster::fitLine()
         meanvec[1] += data[count][1];
         meanvec[2] += data[count][2];
 
-        prevstamp = currt;
+//        prevstamp = currt;
         count++;
     }
     meanvec[0] = meanvec[0]/n;

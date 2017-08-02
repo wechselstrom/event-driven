@@ -61,6 +61,7 @@ std::pair <double, double> clusterPool::update(ev::event<ev::LabelledAE> evt, do
             //add event to the minimum distance cluster
             if(pool[clusterID].addEvent(evt, currt)) {
                 //start tracking cluster
+//                std::cout << clusterID << " " << pool[clusterID].getClusterSize() << " " << currt << std::endl;
                 if(pool[clusterID].getClusterSize() > minevts) { // && pool[clusterID].getSpatialDist(evt) > 3.0) {
                     pool[clusterID].fitLine();
 //                    std::cout << evt->x << " " << evt->y << " " << clusterID << " " << pool[clusterID].getClusterSize() << " " << pool[clusterID].getFitErr() << std::endl;
