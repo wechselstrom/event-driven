@@ -41,6 +41,8 @@ vDraw * createDrawer(std::string tag)
         return new isoInterestDraw();
     if(tag == predDraw::drawtype)
         return new predDraw();
+    if(tag == boundingDraw::drawtype)
+        return new boundingDraw();
     return 0;
 
 }
@@ -841,6 +843,70 @@ void predDraw::draw(cv::Mat &image, const vQueue &eSet, int vTime)
         p_start.x = (int) (p_end.x - 5*sin(theta - M_PI/4));
         p_start.y = (int) (p_end.y - 5*cos(theta - M_PI/4));
         cv::line(image, p_start, p_end, line_color, 1, 4);
+    }
+
+}
+
+const std::string boundingDraw::drawtype = "BOUND";
+
+std::string boundingDraw::getDrawType()
+{
+    return boundingDraw::drawtype;
+}
+
+std::string boundingDraw::getEventType()
+{
+    return LabelledAE::tag;
+}
+
+void boundingDraw::draw(cv::Mat &image, const ev::vQueue &eSet, int vTime)
+{
+
+    if(image.empty()) {
+        image = cv::Mat(Ylimit, Xlimit, CV_8UC3);
+        image.setTo(255);
+    }
+
+    if(eSet.empty()) return;
+    if(checkStagnancy(eSet) > clearThreshold) {
+        return;
+    }
+
+    std::vector < cv::Point > points;
+    cv::Point p;
+    CvScalar c1 = CV_RGB(255, 0, 0);
+    cv::Rect boundRect;
+    ev::vQueue::const_reverse_iterator qi;
+    int count = 0;
+    for(qi = eSet.rbegin(); qi != eSet.rend(); qi++) {
+        int dt = eSet.back()->stamp - (*qi)->stamp;
+        if(dt < 0) dt += ev::vtsHelper::maxStamp();
+        if(dt > twindow) break;
+
+        auto v = as_event<ev::LabelledAE>(*qi);
+        if(!v) continue;
+
+        if(v->ID == 1) continue;
+
+        int px = v->x;
+        int py = v->y;
+        if(flip) {
+            px = Xlimit - 1 - px;
+            py = Ylimit - 1 - py;
+        }
+        p.x = px;
+        p.y = py;
+        points.push_back(p);
+        count++;
+    }
+
+    if(count >= 2) {
+        std::vector < cv::Point > contours_poly;
+        double epsilon = 0.1;
+        cv::approxPolyDP(points, contours_poly, epsilon, true);
+
+        boundRect = cv::boundingRect( cv::Mat(contours_poly) );
+        cv::rectangle( image, boundRect.tl(), boundRect.br(), c1 );
     }
 
 }
