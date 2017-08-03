@@ -111,7 +111,7 @@ private:
 
     yarp::sig::Vector predict_mean(svm_node *encvel);
     yarp::sig::Matrix predict_cov(svm_node *encvel);
-    bool detect_independent(ev::event<ev::FlowEvent> ofe, yarp::sig::Vector pred_meanv, yarp::sig::Matrix pred_covv);
+    bool detect_independent(ev::event<ev::FlowEvent> ofe, yarp::sig::Vector pred_meanv, yarp::sig::Matrix pred_covv, double &mahdist);
 
 public:
 

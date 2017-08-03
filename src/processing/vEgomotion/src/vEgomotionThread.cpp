@@ -92,7 +92,8 @@ vEgomotionThread::vEgomotionThread(std::string name, bool train, double threshol
     int njoints = 6;
 
     //create smv node that will be our features (encoders velocities)
-    encveltest = new svm_node[njoints];
+//    encveltest = new svm_node[njoints];
+    encveltest = (struct svm_node *) malloc((njoints+1)*sizeof(struct svm_node));
 
     //open range
     range_file.open(folder + "range.txt", std::ios_base::in);
@@ -234,34 +235,35 @@ void vEgomotionThread::run()
         //get joints velocities, scale them and put them in a svm structure
         yarp::sig::Vector encvels;
         velobs->getEncVels(encvels);
+
 //        std::cout << "from encoders ";
         bool notmoving = false;
-        int countNotMoving = 0;
+        unsigned int countNotMoving = 0;
         for(unsigned int b = 0; b < encvels.size(); b++)
         {
             encveltest[b].index = b + 1;
             if(abs(encvels[b]) < pow(10, -15)) {
-                encveltest[b].value = 0;
                 countNotMoving++;
             }
-            else
-                encveltest[b].value = (encvels[b] - min_j[b]) / range_j[b];
-//            std::cout << encveltest[b].value << " ";
+            encveltest[b].value = (encvels[b] - min_j[b]) / range_j[b];
         }
-//        std::cout << std::endl << std::endl;
-        if (countNotMoving == encvels.size()) notmoving = true;
-
         //feature is meant to terminate with -1
         encveltest[encvels.size()].index = -1;
-        encveltest[encvels.size()].value = 0;
+//        encveltest[encvels.size()].value = 0;
+
+        if(countNotMoving == encvels.size()) notmoving = true;
 
         yarp::sig::Vector pred_meanv(2);
         yarp::sig::Matrix pred_covv(2, 2);
         float avgvx = 0.0;
         float avgvy = 0.0;
-        float svx = 0.0;
-        float svy = 0.0;
-        float svxvy = 0.0;
+//        float svx = 0.0;
+//        float svy = 0.0;
+//        float svxvy = 0.0;
+        double mah_dist;
+        bool isindependent;
+        int cmx = 0;
+        int cmy = 0;
         for(ev::vQueue::iterator qi = q->begin(); qi != q->end(); qi++) {
 
             //get the flow event
@@ -269,100 +271,120 @@ void vEgomotionThread::run()
             avgvx += ofp->vx;
             avgvy += ofp->vy;
 
-            //testing
-            if(!train) {
+            //            //testing
+            //            if(!train) {
 
-                //predict egomotion using current encoder velocities
-                //and the learnt models
-                if(notmoving == true) {
-                    pred_meanv[0] = 0.0;
-                    pred_meanv[1] = 0.0;
-                    pred_covv(0, 0) = 0.0001;
-                    pred_covv(1, 0) = 0.0;
-                    pred_covv(0, 1) = 0.0;
-                    pred_covv(1, 1) = 0.0001;
-                }
-                else {
-                    pred_meanv = predict_mean(encveltest);
-                    pred_covv = predict_cov(encveltest);
-                }
+            //predict egomotion using current encoder velocities
+            //and the learnt models
+            if(notmoving == true) {
+                isindependent = true;
+                cmx += ofp->x;
+                cmy += ofp->y;
+            }
+            else {
+                pred_meanv = predict_mean(encveltest);
+//                pred_covv = predict_cov(encveltest);
 
-//                ofp->vx = pred_meanv[0];
-//                ofp->vy = pred_meanv[1];
-//                outthread.pushevent(ofp, yarpstamp);
+                pred_covv(0, 0) = 1;
+                pred_covv(1, 0) = 0;
+                pred_covv(0, 1) = 0;
+                pred_covv(1, 1) = 1;
 
                 //compute metric
-                bool isindependent = detect_independent(ofp, pred_meanv, pred_covv);
-                auto inde = make_event<LabelledAE>(ofp);
-
-                //if it is independent motion, tag the event as independent
-                if(isindependent)
-                    inde->ID = 2;
-                else
-                    //if not, tag it as corner
-                    inde->ID = 1;
-
-                outthread.pushevent(inde, yarpstamp);
-
-                if(debugPort.getOutputCount()) {
-                    yarp::os::Bottle &scorebottleout = debugPort.prepare();
-                    scorebottleout.clear();
-                    scorebottleout.addDouble(pred_meanv[0]);
-                    scorebottleout.addDouble(pred_meanv[1]);
-                    scorebottleout.addDouble(ofp->vx);
-                    scorebottleout.addDouble(ofp->vy);
-                    debugPort.write();
-                }
+                isindependent = detect_independent(ofp, pred_meanv, pred_covv, mah_dist);
             }
+
+            //                ofp->vx = pred_meanv[0];
+            //                ofp->vy = pred_meanv[1];
+            //                std::cout << ofp->vx << " " << ofp->vy << std::endl;
+            //                outthread.pushevent(ofp, yarpstamp);
+
+            //if it is independent motion, tag the event as independent
+            auto inde = make_event<LabelledAE>(ofp);
+            if(isindependent)
+                inde->ID = 2;
+            else
+                //if not, tag it as corner
+                inde->ID = 1;
+
+            outthread.pushevent(inde, yarpstamp);
+
+            if(debugPort.getOutputCount()) {
+                yarp::os::Bottle &scorebottleout = debugPort.prepare();
+                scorebottleout.clear();
+                scorebottleout.addDouble(pred_meanv[0]);
+                scorebottleout.addDouble(pred_meanv[1]);
+                scorebottleout.addDouble(pred_covv(0, 0));
+                scorebottleout.addDouble(pred_covv(1, 1));
+                scorebottleout.addDouble(mah_dist);
+                scorebottleout.addDouble(ofp->vx);
+                scorebottleout.addDouble(ofp->vy);
+                debugPort.write();
+            }
+
+            //            }
         }
 
-        if(train) {
+//        if(debugPort.getOutputCount()) {
+//            yarp::os::Bottle &scorebottleout = debugPort.prepare();
+//            scorebottleout.clear();
+//            scorebottleout.addDouble(pred_meanv[0]);
+//            scorebottleout.addDouble(pred_meanv[1]);
+//            scorebottleout.addDouble(pred_covv(0, 0));
+//            scorebottleout.addDouble(pred_covv(1, 1));
+//            scorebottleout.addDouble(mah_dist);
+//            scorebottleout.addDouble(avgvx/count);
+//            scorebottleout.addDouble(avgvy/count);
+//            debugPort.write();
+//        }
 
-            //compute statistics
-//            std::cout << q->size() << std::endl;
-            avgvx = avgvx / q->size();
-            avgvy = avgvy / q->size();
+//        if(train) {
 
-            for(ev::vQueue::iterator qi = q->begin(); qi != q->end(); qi++) {
+//            //compute statistics
+////            std::cout << q->size() << std::endl;
+//            avgvx = avgvx / q->size();
+//            avgvy = avgvy / q->size();
 
-                //get the flow event
-                auto ofp = ev::is_event<ev::FlowEvent>(*qi);
-                svx += (ofp->vx - avgvx) * (ofp->vx - avgvx);
-                svy += (ofp->vy - avgvy) * (ofp->vy - avgvy);
-                svxvy += (ofp->vx - avgvx) * (ofp->vy - avgvy);
-            }
-            svx = sqrt(svx / (q->size() - 1));
-            svy = sqrt(svy / (q->size() - 1));
-            svxvy = sqrt(svxvy / (q->size() - 1));
+//            for(ev::vQueue::iterator qi = q->begin(); qi != q->end(); qi++) {
 
-            //save to file
-            mu_vx_training << avgvx;
-            mu_vy_training << avgvy;
-            sigma_vx_training << svx;
-            sigma_vy_training << svy;
-            sigma_vxvy_training << svxvy;
-            for(unsigned int b = 0; b < encvels.size(); b++)
-            {
-                 mu_vx_training << " " << b + 1 << ":" << encvels[b];
-                 mu_vy_training << " " << b + 1 << ":" << encvels[b];
-                 sigma_vx_training << " " << b + 1 << ":" << encvels[b];
-                 sigma_vy_training << " " << b + 1 << ":" << encvels[b];
-                 sigma_vxvy_training << " " << b + 1 << ":" << encvels[b];
-            }
-            mu_vx_training << "\n";
-            mu_vy_training << "\n";
-            sigma_vx_training << "\n";
-            sigma_vy_training << "\n";
-            sigma_vxvy_training << "\n";
+//                //get the flow event
+//                auto ofp = ev::is_event<ev::FlowEvent>(*qi);
+//                svx += (ofp->vx - avgvx) * (ofp->vx - avgvx);
+//                svy += (ofp->vy - avgvy) * (ofp->vy - avgvy);
+//                svxvy += (ofp->vx - avgvx) * (ofp->vy - avgvy);
+//            }
+//            svx = sqrt(svx / (q->size() - 1));
+//            svy = sqrt(svy / (q->size() - 1));
+//            svxvy = sqrt(svxvy / (q->size() - 1));
 
-//            svm_problem prob_muvx;
-//            prob_muvx.x = encveltrain;
-//            prob_muvx.y = &avgvx;
-//            mu_vx = svm_train(&prob_muvx, &svm_param);
-//            if(svm_save_model(mu_vx_file_train, mu_vx))
-//                std::cout << "saving model for mu_vx " << std::endl;
+//            //save to file
+//            mu_vx_training << avgvx;
+//            mu_vy_training << avgvy;
+//            sigma_vx_training << svx;
+//            sigma_vy_training << svy;
+//            sigma_vxvy_training << svxvy;
+//            for(unsigned int b = 0; b < encvels.size(); b++)
+//            {
+//                 mu_vx_training << " " << b + 1 << ":" << encvels[b];
+//                 mu_vy_training << " " << b + 1 << ":" << encvels[b];
+//                 sigma_vx_training << " " << b + 1 << ":" << encvels[b];
+//                 sigma_vy_training << " " << b + 1 << ":" << encvels[b];
+//                 sigma_vxvy_training << " " << b + 1 << ":" << encvels[b];
+//            }
+//            mu_vx_training << "\n";
+//            mu_vy_training << "\n";
+//            sigma_vx_training << "\n";
+//            sigma_vy_training << "\n";
+//            sigma_vxvy_training << "\n";
 
-        }
+////            svm_problem prob_muvx;
+////            prob_muvx.x = encveltrain;
+////            prob_muvx.y = &avgvx;
+////            mu_vx = svm_train(&prob_muvx, &svm_param);
+////            if(svm_save_model(mu_vx_file_train, mu_vx))
+////                std::cout << "saving model for mu_vx " << std::endl;
+
+//        }
 
         allocatorCallback.scrapQ();
 
@@ -371,7 +393,7 @@ void vEgomotionThread::run()
 }
 
 /**********************************************************/
-bool vEgomotionThread::detect_independent(event<FlowEvent> ofe, yarp::sig::Vector pred_meanv, yarp::sig::Matrix pred_covv)
+bool vEgomotionThread::detect_independent(event<FlowEvent> ofe, yarp::sig::Vector pred_meanv, yarp::sig::Matrix pred_covv, double &mahdist)
 {
 
     yarp::sig::Vector flowvel(2);
@@ -390,9 +412,9 @@ bool vEgomotionThread::detect_independent(event<FlowEvent> ofe, yarp::sig::Vecto
     a(0, 1) = diff[0]*invcov(0, 1) + diff[1]*invcov(1, 1);
 
     //compute mahalanobis distance
-    double mahdist = sqrt(a(0, 0)*diff[0] + a(0, 1)*diff[1]);
+    mahdist = sqrt(a(0, 0)*diff[0] + a(0, 1)*diff[1]);
 
-//    std::cout << pred_meanv[0] << " " << pred_meanv[1] << " " << mahdist << " " << threshold << std::endl;
+//    std::cout << pred_meanv[0] << " " << pred_meanv[1] << " " << flowvel[0] << " " << flowvel[1] << " " << mahdist << " " << threshold << std::endl;
 
 //    if(debugPort.getOutputCount()) {
 //        yarp::os::Bottle &scorebottleout = debugPort.prepare();
@@ -421,7 +443,7 @@ yarp::sig::Vector vEgomotionThread::predict_mean(svm_node *encvel)
     pred_mu_vy = svm_predict(mu_vy, encvel);
 
     mu[0] = pred_mu_vx;
-    mu[1] = pred_mu_vy;
+    mu[1] = -pred_mu_vy;
 
 //    std::cout << mu[0] << " " << mu[1] << std::endl;
 
