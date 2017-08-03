@@ -38,8 +38,11 @@ public:
     vtsHelper(): last_stamp(0), n_wraps(0) {}
 
     unsigned long int operator() (int timestamp) {
-        if(last_stamp > timestamp)
+//        if(last_stamp > timestamp) {
+        if( (timestamp - last_stamp) < -max_stamp/2 ) {
             n_wraps++;
+//            std::cout << last_stamp * tsscaler << " " << timestamp * tsscaler << " " << n_wraps << std::endl;
+        }
         last_stamp = timestamp;
         return currentTime();
     }
