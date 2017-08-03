@@ -43,11 +43,9 @@ private:
     ev::vQueue patch;
     filters convolution;
     ev::collectorPort *outthread;
-    yarp::os::Stamp ystamp;
-//    yarp::os::Mutex processing;
-//    yarp::os::Mutex dataready;
     yarp::os::Stamp *ystamp_p;
     ev::temporalSurface *cSurf_p;
+
     yarp::os::Mutex *semaphore;
     yarp::os::Semaphore *mutex;
 
@@ -65,15 +63,10 @@ private:
 
 public:
 
-    bool taskassigned;
     vComputeThread(int sobelsize, int windowRad, double sigma, double thresh, unsigned int qlen, ev::collectorPort *outthread, yarp::os::Mutex *semaphore,
                     yarp::os::Mutex *mutex_writer, yarp::os::Mutex *trytoread, yarp::os::Mutex *mutex_reader, int *readcount);
-    void setData(ev::temporalSurface *cSurf, yarp::os::Stamp ystamp);
-//    void setData(ev::historicalSurface *cSurf, yarp::os::Stamp ystamp);
-//    void assignTask(ev::temporalSurface *cSurf, yarp::os::Stamp *ystamp);
+//    void setData(ev::temporalSurface *cSurf, yarp::os::Stamp ystamp);
     void assignTask(ev::event<ev::AddressEvent> ae, ev::temporalSurface *cSurf, yarp::os::Stamp *ystamp);
-//    void assignTask(ev::event<ev::AddressEvent> aep, ev::vQueue *cPatch, yarp::os::Stamp *ystamp);
-//    void assignTask(ev::temporalSurface *cSurf, yarp::os::Stamp ystamp);
     void suspend();
     void wakeup();
     bool available();
