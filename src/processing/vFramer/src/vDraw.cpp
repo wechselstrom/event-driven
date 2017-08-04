@@ -872,12 +872,11 @@ void boundingDraw::draw(cv::Mat &image, const ev::vQueue &eSet, int vTime)
         return;
     }
 
-    std::vector < cv::Point > points;
+    std::vector < cv::Point > pointsToTrack;
     cv::Point p;
-    CvScalar c1 = CV_RGB(0, 255, 255);
-    cv::Rect boundRect;
     ev::vQueue::const_reverse_iterator qi;
-    int count = 0;
+    double mx = 0.0;
+    double my = 0.0;
     for(qi = eSet.rbegin(); qi != eSet.rend(); qi++) {
         int dt = eSet.back()->stamp - (*qi)->stamp;
         if(dt < 0) dt += ev::vtsHelper::maxStamp();
@@ -886,27 +885,61 @@ void boundingDraw::draw(cv::Mat &image, const ev::vQueue &eSet, int vTime)
         auto v = as_event<ev::LabelledAE>(*qi);
         if(!v) continue;
 
+        //we only consider independently moving corners
         if(v->ID == 1) continue;
 
-        int px = v->x;
-        int py = v->y;
+        int currx = v->x;
+        int curry = v->y;
         if(flip) {
-            px = Xlimit - 1 - px;
-            py = Ylimit - 1 - py;
+            currx = Xlimit - 1 - currx;
+            curry = Ylimit - 1 - curry;
         }
-        p.x = px;
-        p.y = py;
-        points.push_back(p);
-        count++;
+
+        mx += currx;
+        my += curry;
+
+        //we add them in the points to be tracked
+        p.x = currx;
+        p.y = curry;
+        pointsToTrack.push_back(p);
+
+    }
+    mx = mx / pointsToTrack.size();
+    my = my / pointsToTrack.size();
+
+    double sx = 0.0;
+    double sy = 0.0;
+    //we compute statistics
+    for(unsigned int i = 0; i < pointsToTrack.size(); i++) {
+        sx += (pointsToTrack[i].x - mx) * (pointsToTrack[i].x - mx);
+        sy += (pointsToTrack[i].y - my) * (pointsToTrack[i].y - my);
+    }
+    sx = sqrt(sx / (pointsToTrack.size() - 1));
+    sy = sqrt(sy / (pointsToTrack.size() - 1));
+
+    //we remove outliers
+    unsigned int k = 0;
+    while(k < pointsToTrack.size()) {
+        double devx = (pointsToTrack[k].x - mx) / sx;
+        double devy = (pointsToTrack[k].y - my) / sy;
+        if(devx > 2 && devy > 2)
+            pointsToTrack.erase(pointsToTrack.begin() + k);
+        else
+            k++;
     }
 
-    if(count >= 2) {
-        std::vector < cv::Point > contours_poly;
-        double epsilon = 0.1;
-        cv::approxPolyDP(points, contours_poly, epsilon, true);
+    //if we have enough inliers
+    if(pointsToTrack.size() > 2) {
 
-        boundRect = cv::boundingRect( cv::Mat(contours_poly) );
-        cv::rectangle( image, boundRect.tl(), boundRect.br(), c1 );
+        //we fit a polygon to the points
+        double epsilon = 0.1;
+        std::vector < cv::Point > contours_poly;
+        cv::approxPolyDP(pointsToTrack, contours_poly, epsilon, true);
+
+        //we determine the bounding box around the polygon
+        CvScalar color = CV_RGB(0, 255, 255);
+        cv::Rect boundRect = cv::boundingRect( cv::Mat(contours_poly) );
+        cv::rectangle( image, boundRect.tl(), boundRect.br(), color );
     }
 
 }
