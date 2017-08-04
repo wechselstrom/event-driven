@@ -109,9 +109,15 @@ private:
     struct svm_node encvel;
     struct svm_node *encveltest;
 
+    double cmx;
+    double cmy;
+    int ts;
+    ev::vtsHelper unwrapper;
+
     yarp::sig::Vector predict_mean(svm_node *encvel);
     yarp::sig::Matrix predict_cov(svm_node *encvel);
-    bool detect_independent(ev::event<ev::FlowEvent> ofe, yarp::sig::Vector pred_meanv, yarp::sig::Matrix pred_covv, double &mahdist);
+    bool detect_independent(ev::event<ev::FlowEvent> ofe, yarp::sig::Vector pred_meanv, yarp::sig::Matrix pred_covv,
+                            double &mahdist, double weight);
 
 public:
 

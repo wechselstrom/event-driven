@@ -105,6 +105,9 @@ vEgomotionThread::vEgomotionThread(std::string name, bool train, double threshol
     for(int i = 0; i < njoints; i ++)
         range_j[i] = max_j[i] - min_j[i];
 
+    cmx = 0.0;
+    cmy = 0.0;
+
     if(train) {
 
         yInfo("STARTING TRAINING...");
@@ -236,7 +239,6 @@ void vEgomotionThread::run()
         yarp::sig::Vector encvels;
         velobs->getEncVels(encvels);
 
-//        std::cout << "from encoders ";
         bool notmoving = false;
         unsigned int countNotMoving = 0;
         for(unsigned int b = 0; b < encvels.size(); b++)
@@ -257,19 +259,16 @@ void vEgomotionThread::run()
         yarp::sig::Matrix pred_covv(2, 2);
         float avgvx = 0.0;
         float avgvy = 0.0;
-//        float svx = 0.0;
-//        float svy = 0.0;
-//        float svxvy = 0.0;
         double mah_dist;
         bool isindependent;
-        int cmx = 0;
-        int cmy = 0;
+        double weight;
         for(ev::vQueue::iterator qi = q->begin(); qi != q->end(); qi++) {
 
             //get the flow event
             auto ofp = ev::is_event<ev::FlowEvent>(*qi);
             avgvx += ofp->vx;
             avgvy += ofp->vy;
+            int currt = unwrapper(ofp->stamp);
 
             //            //testing
             //            if(!train) {
@@ -280,6 +279,7 @@ void vEgomotionThread::run()
                 isindependent = true;
                 cmx += ofp->x;
                 cmy += ofp->y;
+                ts = currt;
             }
             else {
                 pred_meanv = predict_mean(encveltest);
@@ -290,14 +290,36 @@ void vEgomotionThread::run()
                 pred_covv(0, 1) = 0;
                 pred_covv(1, 1) = 1;
 
+//                //if something has moved
+//                if(cmx != 0.0 && cmy != 0.0) {
+
+//                }
+                //distance from known independently moving corners
+                double dx = ofp->x - cmx;
+                double dy = ofp->y - cmy;
+                double dist = sqrt(dx*dx + dy*dy);
+                int dt = currt - ts;
+
+                //give more weight to corners close to known independently moving corners
+                if(dist < 5 && dt < 100000)
+                    weight = 2;
+                else
+                    weight = 1;
+
                 //compute metric
-                isindependent = detect_independent(ofp, pred_meanv, pred_covv, mah_dist);
+                isindependent = detect_independent(ofp, pred_meanv, pred_covv, mah_dist, weight);
+
+                if(dt > 100000) {
+                    cmx = 0.0;
+                    cmy = 0.0;
+                }
+
             }
 
-            //                ofp->vx = pred_meanv[0];
-            //                ofp->vy = pred_meanv[1];
-            //                std::cout << ofp->vx << " " << ofp->vy << std::endl;
-            //                outthread.pushevent(ofp, yarpstamp);
+            if(notmoving == true) {
+                cmx = cmx/q->size();
+                cmy = cmy/q->size();
+            }
 
             //if it is independent motion, tag the event as independent
             auto inde = make_event<LabelledAE>(ofp);
@@ -339,6 +361,10 @@ void vEgomotionThread::run()
 //        }
 
 //        if(train) {
+
+//        float svx = 0.0;
+//        float svy = 0.0;
+//        float svxvy = 0.0;
 
 //            //compute statistics
 ////            std::cout << q->size() << std::endl;
@@ -393,7 +419,8 @@ void vEgomotionThread::run()
 }
 
 /**********************************************************/
-bool vEgomotionThread::detect_independent(event<FlowEvent> ofe, yarp::sig::Vector pred_meanv, yarp::sig::Matrix pred_covv, double &mahdist)
+bool vEgomotionThread::detect_independent(event<FlowEvent> ofe, yarp::sig::Vector pred_meanv, yarp::sig::Matrix pred_covv,
+                                          double &mahdist, double weight)
 {
 
     yarp::sig::Vector flowvel(2);
@@ -412,7 +439,7 @@ bool vEgomotionThread::detect_independent(event<FlowEvent> ofe, yarp::sig::Vecto
     a(0, 1) = diff[0]*invcov(0, 1) + diff[1]*invcov(1, 1);
 
     //compute mahalanobis distance
-    mahdist = sqrt(a(0, 0)*diff[0] + a(0, 1)*diff[1]);
+    mahdist = weight * sqrt(a(0, 0)*diff[0] + a(0, 1)*diff[1]);
 
 //    std::cout << pred_meanv[0] << " " << pred_meanv[1] << " " << flowvel[0] << " " << flowvel[1] << " " << mahdist << " " << threshold << std::endl;
 
