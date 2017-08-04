@@ -201,7 +201,7 @@ def getData(binp):
 def setData(binp, data):
     """ writes the channel, timestamp, x, y and polarity provided
     in data to the vBottle provided by binp"""
-    if (data.shape != (512, 5) or data.dtype != np.uint32):
+    if (data.shape != (binp.getSize(), 5) or data.dtype != np.uint32):
         raise ValueError('argument data requires shape (512, 5) and uint32')
     binp._setData(*data.T)
 

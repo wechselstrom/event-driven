@@ -37,6 +37,7 @@ private:
     //parameters
     unsigned int bufferSize;
     unsigned int readSize;
+    long n_events;
 
     unsigned int last_timestamp=0;
     int width; int height;
@@ -52,6 +53,8 @@ private:
     std::vector<unsigned char> buffer1;
     std::vector<unsigned char> buffer2;
     std::vector<unsigned char> discardbuffer;
+    
+    uint32_t *ev_buffer;
 
     yarp::os::Semaphore safety;
     yarp::os::Semaphore signal;

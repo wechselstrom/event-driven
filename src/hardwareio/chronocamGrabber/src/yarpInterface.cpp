@@ -44,54 +44,53 @@ vDevReadBuffer::vDevReadBuffer()
 
 }
 
+
+
 long vDevReadBuffer::getEventChunk(unsigned char* target)
 {
-    if (!cam->poll_buffer()) {
-        return 0;
-    }
-    long n_events = 0;
     long n_TD = 0;
-    
-    
-    uint32_t *ev_buffer = (uint32_t*)cam->decode_buffer(&n_events);
+    bool polled = false;
     uint64_t *target64 = (uint64_t*) target;
-
-    
-    for (int i=0; i < n_events; ++i) {
-
-        EventBase * evbase = reinterpret_cast<EventBase*>(&ev_buffer[i]);
+    //std::cout << "n_events:" << n_events << std::endl;
+    while (n_TD<512) {
+    	if (n_events == 0) {
+		if (polled) {
+			//std::cout << "no more events to send" << std::endl;
+			break;
+		} else {
+			//std::cout << "repolling" << std::endl;
+    			if (!cam->poll_buffer()) {
+			    //std::cout << "still no events" << std::endl;
+    			    break;
+    			}
+    			ev_buffer = (uint32_t*)cam->decode_buffer(&n_events);
+		}
+    	}
+        EventBase * evbase = reinterpret_cast<EventBase*>(ev_buffer);
         if(static_cast<Event_Types_underlying>(Event_Types::EVT_TIME_HIGH) == evbase->type) {
-            Event_EVT_TIME_HIGH ev = *reinterpret_cast<Event_EVT_TIME_HIGH*>(&ev_buffer[i]);
+            Event_EVT_TIME_HIGH ev = *reinterpret_cast<Event_EVT_TIME_HIGH*>(ev_buffer);
 	    last_timestamp = ((uint64_t) ev.timestamp)<<11;
         } else if(static_cast<Event_Types_underlying>(Event_Types::LEFT_TD_LOW) == evbase->type) {
-    	    Event_EVENT2D ev = *reinterpret_cast<Event_EVENT2D*>(&ev_buffer[i]);
+    	    Event_EVENT2D ev = *reinterpret_cast<Event_EVENT2D*>(ev_buffer);
 	    uint32_t ts = ((last_timestamp + (uint32_t) ev.timestamp)%(1<<25));
-	    uint64_t num = ((uint64_t) ts)|((uint64_t)(this->height-1-ev.y)<<42)|((uint64_t)(this->width-1-ev.x)<<33)|0UL<<32;
-	    target64[n_TD] = num;
+	    uint64_t encoded = ((uint64_t) ts)|((uint64_t)(this->height-1-ev.y)<<42)|((uint64_t)(this->width-1-ev.x)<<33)|0UL<<32;
+	    *target64++ = encoded;
             ++n_TD;
 	    //std::cout << "(" << ev.timestamp << ", " << ev.x << ", " << ev.y << ", " << 0 << "), " << std::endl;
         } else if(static_cast<Event_Types_underlying>(Event_Types::LEFT_TD_HIGH) == evbase->type) {
-    	    Event_EVENT2D ev = *reinterpret_cast<Event_EVENT2D*>(&ev_buffer[i]);
+    	    Event_EVENT2D ev = *reinterpret_cast<Event_EVENT2D*>(ev_buffer);
 	    uint32_t ts = ((last_timestamp + (uint32_t) ev.timestamp)%(1<<25));
-	    uint64_t num = ((uint64_t) ts)|((uint64_t)(this->height-1-ev.y)<<42)|((uint64_t)(this->width-1-ev.x)<<33)|1UL<<32;
-	    target64[n_TD] = num;
+	    uint64_t encoded = ((uint64_t) ts)|((uint64_t)(this->height-1-ev.y)<<42)|((uint64_t)(this->width-1-ev.x)<<33)|1UL<<32;
+	    *target64++ = encoded;
             ++n_TD;
-	    //std::cout << "(" << ev.timestamp << ", " << ev.x << ", " << ev.y << ", " << 1 << "), " << std::endl;
-	    //std::cout << ".";
-        } else if(static_cast<Event_Types_underlying>(Event_Types::LEFT_APS_START) == evbase->type) {
-    	// currently no plan for APS events
-        } else if(static_cast<Event_Types_underlying>(Event_Types::LEFT_APS_END) == evbase->type) {
-    	// currently no plan for APS events
-        } else {
-	    std::cout << "!";
-	}
+        } 
+	ev_buffer++;
+	n_events--;
     }
     
-    if(n_TD > bufferSize / 8)
-	    std::cout << "n_TD bigger than buffersize: " << n_TD << std::endl;
-    //std::cout << std::endl;
-    
-    return n_TD*8; //TODO:change this! use n_TD instead
+
+    //std::cout << "sending " << n_TD << " events" << std::endl;
+    return n_TD*8; 
 }
 
 
@@ -328,7 +327,7 @@ void  device2yarp::run() {
         if(!portvBottle.getOutputCount() || nBytesRead < 8)
             continue;
 
-	std::cout << *(int*)data.data() << std::endl;
+	//std::cout << *(int*)data.data() << std::endl;
         //typical ZYNQ behaviour to skip error checking
         unsigned int chunksize = 80000, i = 0;
         if(!errorchecking && !dataError) {
