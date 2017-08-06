@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 
 #include <yarp/os/all.h>
 #include <yarp/sig/all.h>
@@ -30,6 +31,36 @@
 #include <iCub/eventdriven/all.h>
 #include <iCub/eventdriven/svm.h>
 
+
+class vPredictThread : public yarp::os::Thread
+{
+private:
+
+    ev::collectorPort *outthread;
+    yarp::os::Semaphore *semaphore;
+    struct svm_model *mu_vx;
+    struct svm_model *mu_vy;
+
+    ev::event<ev::FlowEvent> ofe;
+    struct svm_node *encvel;
+    yarp::os::Stamp *ystamp_p;
+
+    bool suspended;
+
+public:
+
+    vPredictThread(ev::collectorPort *outthread, struct svm_model *mu_vx, struct svm_model *mu_vy);
+    void assignTask(ev::event<ev::FlowEvent> ofe, struct svm_node *encvel, yarp::os::Stamp *ystamp);
+    bool detect_independent(ev::event<ev::FlowEvent> ofe, yarp::sig::Vector pred_meanv, yarp::sig::Matrix pred_covv, double weight);
+    yarp::sig::Vector predict_mean(svm_node *encvel);
+    void suspend();
+    void wakeup();
+    bool available();
+    bool threadInit() { return true; }
+    void run();
+    void threadRelease() {}
+    void onStop();
+};
 
 class vEncObsThread : public::yarp::os::Thread
 {
@@ -71,6 +102,9 @@ private:
     //thread for the output
     ev::collectorPort outthread;
 
+    //threads to predict
+    std::vector< vPredictThread *> predictThreads;
+
     //output port for the vBottle with the new events computed by the module
 //    yarp::os::BufferedPort<ev::vBottle> outPort;
 //    yarp::os::BufferedPort<yarp::os::Bottle> encPort;
@@ -79,7 +113,9 @@ private:
     yarp::os::Stamp yarpstamp;
 
     bool train;
-    double threshold;
+    double thresh_mag;
+    double thresh_angle;
+    int nthreads;
 
     //pre-trained models
     const char *mu_vx_file = "/usr/local/src/robot/event-driven/build/bin/muvx.scale.model";
@@ -109,19 +145,19 @@ private:
     struct svm_node encvel;
     struct svm_node *encveltest;
 
-    double cmx;
-    double cmy;
-    int ts;
-    ev::vtsHelper unwrapper;
+//    ev::vSurface2 *indpSurf;
+
+//    std::ofstream outfile;
+
 
     yarp::sig::Vector predict_mean(svm_node *encvel);
     yarp::sig::Matrix predict_cov(svm_node *encvel);
     bool detect_independent(ev::event<ev::FlowEvent> ofe, yarp::sig::Vector pred_meanv, yarp::sig::Matrix pred_covv,
-                            double &mahdist, double weight);
+                            double &mahdist, double &cosdist, double weight);
 
 public:
 
-    vEgomotionThread(std::string name, bool train, double threshold, vEncObsThread *velobs);
+    vEgomotionThread(std::string name, bool train, double thresh_mag, double thresh_angle, int nthreads, vEncObsThread *velobs);
     bool threadInit();
     bool open(std::string portname);
     void onStop();
