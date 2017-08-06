@@ -171,12 +171,10 @@ void cluster::fitLine()
 
     //only output when the fitting error is small
     //TODO
-//    if(fiterr < 8.0) {
-        //    std::cout << "from line fitting " << -v[0]/v[2] * 1000000 << " " << -v[1]/v[2] * 1000000 << std::endl;
-//        std::cout << v[2] << std::endl << std::endl;
+    if(fiterr < 20.0) {
         vel.first = -v[0]/v[2];
         vel.second = -v[1]/v[2];
-//    }
+    }
 
 }
 
