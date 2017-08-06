@@ -875,8 +875,8 @@ void boundingDraw::draw(cv::Mat &image, const ev::vQueue &eSet, int vTime)
     std::vector < cv::Point > pointsToTrack;
     cv::Point p;
     ev::vQueue::const_reverse_iterator qi;
-    double mx = 0.0;
-    double my = 0.0;
+//    double mx = 0.0;
+//    double my = 0.0;
     for(qi = eSet.rbegin(); qi != eSet.rend(); qi++) {
         int dt = eSet.back()->stamp - (*qi)->stamp;
         if(dt < 0) dt += ev::vtsHelper::maxStamp();
@@ -895,8 +895,8 @@ void boundingDraw::draw(cv::Mat &image, const ev::vQueue &eSet, int vTime)
             curry = Ylimit - 1 - curry;
         }
 
-        mx += currx;
-        my += curry;
+//        mx += currx;
+//        my += curry;
 
         //we add them in the points to be tracked
         p.x = currx;
@@ -904,32 +904,74 @@ void boundingDraw::draw(cv::Mat &image, const ev::vQueue &eSet, int vTime)
         pointsToTrack.push_back(p);
 
     }
-    mx = mx / pointsToTrack.size();
-    my = my / pointsToTrack.size();
 
-    double sx = 0.0;
-    double sy = 0.0;
-    //we compute statistics
+    if(pointsToTrack.size() != 0) {
+
+    }
+    int dx = 0;
+    int dy = 0;
+    std::vector < std::vector < double > > dist;
+
+    dist.resize(pointsToTrack.size());
+    for(unsigned int k = 0; k < pointsToTrack.size(); k++) {
+        dist[k].resize(pointsToTrack.size());
+    }
+
+    std::vector < int > possibleOutliers;
+    double thresh = 55.0;
     for(unsigned int i = 0; i < pointsToTrack.size(); i++) {
-        sx += (pointsToTrack[i].x - mx) * (pointsToTrack[i].x - mx);
-        sy += (pointsToTrack[i].y - my) * (pointsToTrack[i].y - my);
-    }
-    sx = sqrt(sx / (pointsToTrack.size() - 1));
-    sy = sqrt(sy / (pointsToTrack.size() - 1));
 
-    //we remove outliers
-    unsigned int k = 0;
-    while(k < pointsToTrack.size()) {
-        double devx = (pointsToTrack[k].x - mx) / sx;
-        double devy = (pointsToTrack[k].y - my) / sy;
-        if(devx > 2 && devy > 2)
-            pointsToTrack.erase(pointsToTrack.begin() + k);
-        else
-            k++;
+        int currx = pointsToTrack[i].x;
+        int curry = pointsToTrack[i].y;
+
+        for(unsigned int j = 0; j < pointsToTrack.size(); j++) {
+            dx = currx - pointsToTrack[j].x;
+            dy = curry - pointsToTrack[j].y;
+            dist[i][j] = sqrt(dx * dx + dy * dy);
+            if(dist[i][j] > thresh) {
+                possibleOutliers.push_back(j);
+            }
+        }
     }
+
+    int countThres = 3;
+    unsigned int l = 0;
+    while(l < possibleOutliers.size()) {
+        int count = std::count(possibleOutliers.begin(), possibleOutliers.end(), possibleOutliers[l]);
+        if(count > countThres) {
+            pointsToTrack.erase(pointsToTrack.begin() + possibleOutliers[l]);
+            possibleOutliers.erase( remove( possibleOutliers.begin(), possibleOutliers.end(), possibleOutliers[l] ), possibleOutliers.end() );
+        }
+        else
+            l++;
+    }
+
+//    mx = mx / pointsToTrack.size();
+//    my = my / pointsToTrack.size();
+
+//    double sx = 0.0;
+//    double sy = 0.0;
+//    //we compute statistics
+//    for(unsigned int i = 0; i < pointsToTrack.size(); i++) {
+//        sx += (pointsToTrack[i].x - mx) * (pointsToTrack[i].x - mx);
+//        sy += (pointsToTrack[i].y - my) * (pointsToTrack[i].y - my);
+//    }
+//    sx = sqrt(sx / (pointsToTrack.size() - 1));
+//    sy = sqrt(sy / (pointsToTrack.size() - 1));
+
+//    //we remove outliers
+//    unsigned int k = 0;
+//    while(k < pointsToTrack.size()) {
+//        double devx = (pointsToTrack[k].x - mx) / sx;
+//        double devy = (pointsToTrack[k].y - my) / sy;
+//        if(abs(devx) > 1.5 && abs(devy) > 1.5)
+//            pointsToTrack.erase(pointsToTrack.begin() + k);
+//        else
+//            k++;
+//    }
 
     //if we have enough inliers
-    if(pointsToTrack.size() > 2) {
+    if(pointsToTrack.size() > 5) {
 
         //we fit a polygon to the points
         double epsilon = 0.1;
