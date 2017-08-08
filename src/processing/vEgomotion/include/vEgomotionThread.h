@@ -147,8 +147,7 @@ private:
 
 //    ev::vSurface2 *indpSurf;
 
-//    std::ofstream outfile;
-
+    std::ofstream outfile;
 
     yarp::sig::Vector predict_mean(svm_node *encvel);
     yarp::sig::Matrix predict_cov(svm_node *encvel);

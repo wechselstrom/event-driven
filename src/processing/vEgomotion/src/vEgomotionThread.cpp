@@ -168,7 +168,7 @@ vEgomotionThread::vEgomotionThread(std::string name, bool train, double thresh_m
             predictThreads[i]->start();
         }
 
-//        outfile.open(folder + "events_ind.txt", std::ios_base::out);
+        outfile.open(folder + "events_ind.txt", std::ios_base::out);
 }
 
 /**********************************************************/
@@ -233,7 +233,7 @@ void vEgomotionThread::onStop()
     else {
         range_file.close();
     }
-//    outfile.close();
+    outfile.close();
 
 }
 
@@ -367,8 +367,9 @@ void vEgomotionThread::run()
 ////                if(weight > 1)
 ////                    std::cout << mah_dist/weight << " " << mah_dist << std::endl;
 
-////                outfile << ofp->channel << " " << ofp->stamp << " " << ofp->polarity << " " << ofp->x << " " << ofp->y
-////                        << " " << ofp->vx << " " << ofp->vy << " " << pred_meanv[0] << " " << pred_meanv[1] << " " << mah_dist << std::endl;
+                outfile << ofp->channel << " " << ofp->stamp << " " << ofp->polarity << " " << ofp->x << " " << ofp->y
+                        << " " << ofp->vx << " " << ofp->vy << " " << pred_meanv[0] << " " << pred_meanv[1] << " "
+                        << mah_dist << " " << cos_dist << " " << isindependent << std::endl;
 
             }
 
