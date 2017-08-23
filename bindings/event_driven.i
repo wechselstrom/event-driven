@@ -211,3 +211,10 @@ def setData(binp, data):
 %}
 
 }
+
+%inline %{
+    ev::vBottle* bottleToVBottle(yarp::os::Bottle* base) {
+    return static_cast<ev::vBottle*>(base);
+  }
+%}
+
